@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+:root {
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #1e293b;
+  background: #f3f8fc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  background: #f3f8fc;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: 2px;
+}
+
+/* Keep native controls from imposing an intrinsic width in either a routed
+ * form or a portaled dialog. */
+:where(input, select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.agis-route-content :where(input, select, textarea),
+.agis-modal :where(input, select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Login fields use the surrounding container for a quiet focus indication.
+ * Suppress the browser/global outline that otherwise draws a harsh blue line
+ * through the white credential controls. */
+.login-input:focus-visible,
+.login-control:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}
+
+/* Every routed page gets a safe width and a consistent gutter. Pages that
+ * already provide their own padding keep it; legacy detail pages that render
+ * a bare min-w-0 wrapper receive the same gutter automatically. */
+.agis-route-content {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.agis-route-content > :where(main, div) {
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+}
+
+.agis-route-content > div.min-w-0:not([data-testid]),
+.agis-route-content > main.min-w-0:not([class*="p-"]),
+.agis-route-content > main.space-y-5:not([class*="p-"]) {
+  padding: 1rem;
+}
+
+.agis-route-content table {
+  max-width: 100%;
+}
+
+/* Form controls must shrink with their grid cell. Native controls otherwise
+ * keep an intrinsic minimum width and can push long AEMS values outside the
+ * phone viewport. */
+.agis-route-content :where(label, .grid > *) {
+  min-width: 0;
+}
+
+.agis-modal :where(label, .grid > *) {
+  min-width: 0;
+}
+
+/* Keep AEMS tab strips as real touch scroll containers. The visible scrollbar
+ * is intentionally subtle, but the strip must not rely on accidental page
+ * overflow for horizontal navigation. */
+.aems-workspace-tabs-scroll {
+  width: 100%;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Keep the standalone AEMS operational surfaces aligned with the rest of the
+ * application shell. Their content is rendered directly into the Outlet, so
+ * the shell cannot provide the page gutter without also changing every other
+ * module. */
+[data-testid="aems-operational-queues"],
+[data-testid="aems-calendar-page"],
+[data-testid="aems-registers-page"],
+[data-testid="aems-records-closure-page"] {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .agis-route-content > div.min-w-0:not([data-testid]),
+  .agis-route-content > main.min-w-0:not([class*="p-"]),
+  .agis-route-content > main.space-y-5:not([class*="p-"]) {
+    padding: 1.25rem;
+  }
+
+  [data-testid="aems-operational-queues"],
+  [data-testid="aems-calendar-page"],
+  [data-testid="aems-registers-page"],
+  [data-testid="aems-records-closure-page"] {
+    padding: 1.25rem;
+  }
+}

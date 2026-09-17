@@ -1,0 +1,219 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use LogicException;
+
+/** Append-only business history for a CMS recommendation case. */
+class CmsRecommendationEvent extends Model
+{
+    use HasFactory;
+
+    public const UPDATED_AT = null;
+
+    public const EVENT_INTAKE_CREATED = 'INTAKE_CREATED';
+
+    public const EVENT_COMPLIANCE_MONITOR_ASSIGNED = 'COMPLIANCE_MONITOR_ASSIGNED';
+
+    public const EVENT_COMPLIANCE_MONITOR_REPLACED = 'COMPLIANCE_MONITOR_REPLACED';
+
+    public const EVENT_COMPLIANCE_MONITOR_ASSIGNMENT_ENDED = 'COMPLIANCE_MONITOR_ASSIGNMENT_ENDED';
+
+    public const EVENT_ACTION_PLAN_CREATED = 'ACTION_PLAN_CREATED';
+
+    public const EVENT_ACTION_PLAN_UPDATED = 'ACTION_PLAN_UPDATED';
+
+    public const EVENT_ACTION_PLAN_SUBMITTED = 'ACTION_PLAN_SUBMITTED';
+
+    public const EVENT_ACTION_PLAN_REVIEW_STARTED = 'ACTION_PLAN_REVIEW_STARTED';
+
+    public const EVENT_ACTION_PLAN_RETURNED = 'ACTION_PLAN_RETURNED';
+
+    public const EVENT_ACTION_PLAN_REVISION_CREATED = 'ACTION_PLAN_REVISION_CREATED';
+
+    public const EVENT_ACTION_PLAN_ACCEPTED = 'ACTION_PLAN_ACCEPTED';
+
+    public const EVENT_PROGRESS_UPDATE_CREATED = 'PROGRESS_UPDATE_CREATED';
+
+    public const EVENT_PROGRESS_UPDATE_UPDATED = 'PROGRESS_UPDATE_UPDATED';
+
+    public const EVENT_PROGRESS_EVIDENCE_LINKED = 'PROGRESS_EVIDENCE_LINKED';
+
+    public const EVENT_PROGRESS_EVIDENCE_REMOVED = 'PROGRESS_EVIDENCE_REMOVED';
+
+    public const EVENT_PROGRESS_UPDATE_SUBMITTED = 'PROGRESS_UPDATE_SUBMITTED';
+
+    public const EVENT_PROGRESS_UPDATE_REVIEW_STARTED = 'PROGRESS_UPDATE_REVIEW_STARTED';
+
+    public const EVENT_PROGRESS_UPDATE_RETURNED = 'PROGRESS_UPDATE_RETURNED';
+
+    public const EVENT_PROGRESS_UPDATE_REVISION_CREATED = 'PROGRESS_UPDATE_REVISION_CREATED';
+
+    public const EVENT_PROGRESS_UPDATE_RECORDED = 'PROGRESS_UPDATE_RECORDED';
+
+    public const EVENT_VALIDATION_REVIEW_CREATED = 'VALIDATION_REVIEW_CREATED';
+
+    public const EVENT_VALIDATOR_ASSIGNED = 'VALIDATOR_ASSIGNED';
+
+    public const EVENT_VALIDATOR_REPLACED = 'VALIDATOR_REPLACED';
+
+    public const EVENT_VALIDATOR_ASSIGNMENT_ENDED = 'VALIDATOR_ASSIGNMENT_ENDED';
+
+    public const EVENT_VALIDATION_DRAFT_UPDATED = 'VALIDATION_DRAFT_UPDATED';
+
+    public const EVENT_VALIDATION_EVIDENCE_LINKED = 'VALIDATION_EVIDENCE_LINKED';
+
+    public const EVENT_VALIDATION_EVIDENCE_REMOVED = 'VALIDATION_EVIDENCE_REMOVED';
+
+    public const EVENT_VALIDATION_SUBMITTED = 'VALIDATION_SUBMITTED';
+
+    public const EVENT_VALIDATION_SUPERVISORY_REVIEW_STARTED = 'VALIDATION_SUPERVISORY_REVIEW_STARTED';
+
+    public const EVENT_VALIDATION_RETURNED = 'VALIDATION_RETURNED';
+
+    public const EVENT_VALIDATION_REVISION_CREATED = 'VALIDATION_REVISION_CREATED';
+
+    public const EVENT_VALIDATION_FINALIZED = 'VALIDATION_FINALIZED';
+
+    public const EVENT_ESCALATION_CREATED = 'ESCALATION_CREATED';
+
+    public const EVENT_ESCALATION_NOTICE_UPDATED = 'ESCALATION_NOTICE_UPDATED';
+
+    public const EVENT_ESCALATION_NOTICE_SUBMITTED = 'ESCALATION_NOTICE_SUBMITTED';
+
+    public const EVENT_ESCALATION_NOTICE_REVIEW_STARTED = 'ESCALATION_NOTICE_REVIEW_STARTED';
+
+    public const EVENT_ESCALATION_NOTICE_RETURNED = 'ESCALATION_NOTICE_RETURNED';
+
+    public const EVENT_ESCALATION_NOTICE_REVISION_CREATED = 'ESCALATION_NOTICE_REVISION_CREATED';
+
+    public const EVENT_ESCALATION_NOTICE_ISSUED = 'ESCALATION_NOTICE_ISSUED';
+
+    public const EVENT_ESCALATION_ACKNOWLEDGED = 'ESCALATION_ACKNOWLEDGED';
+
+    public const EVENT_ESCALATION_RESPONSE_CREATED = 'ESCALATION_RESPONSE_CREATED';
+
+    public const EVENT_ESCALATION_RESPONSE_UPDATED = 'ESCALATION_RESPONSE_UPDATED';
+
+    public const EVENT_ESCALATION_RESPONSE_SUBMITTED = 'ESCALATION_RESPONSE_SUBMITTED';
+
+    public const EVENT_ESCALATION_RESPONSE_REVIEW_STARTED = 'ESCALATION_RESPONSE_REVIEW_STARTED';
+
+    public const EVENT_ESCALATION_RESPONSE_RETURNED = 'ESCALATION_RESPONSE_RETURNED';
+
+    public const EVENT_ESCALATION_RESPONSE_REVISION_CREATED = 'ESCALATION_RESPONSE_REVISION_CREATED';
+
+    public const EVENT_ESCALATION_RESPONSE_ACCEPTED = 'ESCALATION_RESPONSE_ACCEPTED';
+
+    public const EVENT_ESCALATION_RESOLVED = 'ESCALATION_RESOLVED';
+
+    public const EVENT_ESCALATION_EVIDENCE_LINKED = 'ESCALATION_EVIDENCE_LINKED';
+
+    public const EVENT_ESCALATION_EVIDENCE_REMOVED = 'ESCALATION_EVIDENCE_REMOVED';
+
+    public const EVENT_DISPOSITION_CREATED = 'DISPOSITION_CREATED';
+
+    public const EVENT_DISPOSITION_UPDATED = 'DISPOSITION_UPDATED';
+
+    public const EVENT_DISPOSITION_SUBMITTED = 'DISPOSITION_SUBMITTED';
+
+    public const EVENT_DISPOSITION_REVIEW_STARTED = 'DISPOSITION_REVIEW_STARTED';
+
+    public const EVENT_DISPOSITION_RETURNED = 'DISPOSITION_RETURNED';
+
+    public const EVENT_DISPOSITION_REVIEWED = 'DISPOSITION_REVIEWED';
+
+    public const EVENT_DISPOSITION_REVISION_CREATED = 'DISPOSITION_REVISION_CREATED';
+
+    public const EVENT_DISPOSITION_APPROVED = 'DISPOSITION_APPROVED';
+
+    public const EVENT_DISPOSITION_REJECTED = 'DISPOSITION_REJECTED';
+
+    public const EVENT_DISPOSITION_EVIDENCE_LINKED = 'DISPOSITION_EVIDENCE_LINKED';
+
+    public const EVENT_DISPOSITION_EVIDENCE_REMOVED = 'DISPOSITION_EVIDENCE_REMOVED';
+
+    public const EVENT_REOPENING_REQUEST_CREATED = 'REOPENING_REQUEST_CREATED';
+
+    public const EVENT_REOPENING_REQUEST_UPDATED = 'REOPENING_REQUEST_UPDATED';
+
+    public const EVENT_REOPENING_EVIDENCE_LINKED = 'REOPENING_EVIDENCE_LINKED';
+
+    public const EVENT_REOPENING_EVIDENCE_REMOVED = 'REOPENING_EVIDENCE_REMOVED';
+
+    public const EVENT_REOPENING_REQUEST_SUBMITTED = 'REOPENING_REQUEST_SUBMITTED';
+
+    public const EVENT_REOPENING_REVIEW_STARTED = 'REOPENING_REVIEW_STARTED';
+
+    public const EVENT_REOPENING_REQUEST_RETURNED = 'REOPENING_REQUEST_RETURNED';
+
+    public const EVENT_REOPENING_REVIEW_COMPLETED = 'REOPENING_REVIEW_COMPLETED';
+
+    public const EVENT_REOPENING_REVISION_CREATED = 'REOPENING_REVISION_CREATED';
+
+    public const EVENT_REOPENING_APPROVED = 'REOPENING_APPROVED';
+
+    public const EVENT_REOPENING_REJECTED = 'REOPENING_REJECTED';
+
+    public const EVENT_RECOMMENDATION_REOPENED = 'RECOMMENDATION_REOPENED';
+
+    public const EVENT_ACTIVE_CYCLE_STARTED = 'ACTIVE_CYCLE_STARTED';
+
+    public const EVENT_AUTOMATION_CLOSURE_CANDIDATE = 'AUTOMATION_CLOSURE_CANDIDATE';
+
+    public const EVENT_AUTOMATION_ESCALATION_CANDIDATE = 'AUTOMATION_ESCALATION_CANDIDATE';
+
+    protected $fillable = [
+        'cms_recommendation_case_id',
+        'cms_recommendation_id',
+        'idempotency_key',
+        'event_code',
+        'source_module',
+        'actor_id',
+        'previous_status',
+        'new_status',
+        'event_metadata',
+        'ip_address',
+        'user_agent',
+        'created_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'event_metadata' => 'array',
+            'created_at' => 'datetime',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(
+            fn (): never => throw new LogicException('CMS recommendation events are append-only.'),
+        );
+        static::deleting(
+            fn (): never => throw new LogicException('CMS recommendation events cannot be deleted.'),
+        );
+    }
+
+    public function case(): BelongsTo
+    {
+        return $this->belongsTo(
+            CmsRecommendationCase::class,
+            'cms_recommendation_case_id',
+        );
+    }
+
+    public function recommendation(): BelongsTo
+    {
+        return $this->belongsTo(CmsRecommendation::class, 'cms_recommendation_id');
+    }
+
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_id')->withTrashed();
+    }
+}

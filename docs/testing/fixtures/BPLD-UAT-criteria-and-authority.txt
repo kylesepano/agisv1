@@ -1,0 +1,26 @@
+SYNTHETIC ACCEPTANCE-TEST FIXTURE ONLY
+Not an official directive, ordinance, policy or signed government document.
+
+Test authority reference: DEMO-MO-2026-091
+Scenario: BPLD-UAT permit assessment, receipt matching and reconciliation.
+Test office: Business Permits and Licensing Division.
+Test coordinator account: Oxanna S. Custodio (BPLD-HEAD).
+The named coordinator is a system test actor, not the subject of an allegation.
+Date: use T minus one day from the manual guide's actual run sheet.
+
+BPLD-UAT-SOP-01: invented criteria for software testing
+1. Assessment: expected fee = PHP 1,000 + PHP 100 * transaction number.
+   An assessment reviewer checks the result before release.
+2. Receipts: each transaction has one unique receipt reference, and receipt
+   amount equals the recorded assessment. This does not establish bank deposit.
+3. Reconciliation: every reconciled transaction has an independent named
+   secondary reviewer before archival. A blank reviewer is an exception.
+
+Population: 60 synthetic transactions dated within August 2026.
+Sample: transaction numbers 5,10,15,20,25,30,35,40,45,50,55,60.
+Expected sample: 12/12 correct fees, 12/12 matched receipts, 9/12 secondary
+reviewers present. Numbers 5,25,45 deliberately lack secondary review.
+Exception rate: 3/12 = 25%. No statistical projection; no established cash loss.
+
+This fixture demonstrates software behavior. It does not describe actual BPLD
+transactions or establish compliance with a real professional or legal standard.

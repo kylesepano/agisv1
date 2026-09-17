@@ -1,0 +1,15 @@
+SYNTHETIC MANAGEMENT-RESPONSE TEST FIXTURE
+Prepared for software testing; not an actual statement signed by BPLD.
+
+Responding test account: Oxanna S. Custodio, BPLD-HEAD.
+Position: AGREE with the synthetic condition.
+The supplied test records 005, 025 and 045 lack a secondary reconciliation
+reviewer. No monetary loss is established by this test.
+
+Action 1: Introduce a mandatory independent reviewer sign-off checklist before
+archival. Target T+30, where T is the actual test date in the run sheet.
+Action 2: Review the three exceptions and document outcomes, then perform a
+monthly sign-off completeness check. Target T+45.
+Responsible test office/person: BPLD / Oxanna S. Custodio.
+Evidence of completion will be supplied through the permitted CMS workflow.
+Agreement and proposed actions do not mean implementation is complete.

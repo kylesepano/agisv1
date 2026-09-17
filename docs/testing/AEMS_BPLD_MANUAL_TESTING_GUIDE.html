@@ -1,0 +1,4637 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><title>AEMS BPLD Manual Testing Guide</title
+  ><style>
+    @page {
+      size: A4;
+      margin: 16mm 15mm 19mm;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font:
+        9.5pt/1.35 "Segoe UI",
+        Arial,
+        sans-serif;
+      color: #172b43;
+      margin: 0;
+    }
+    h1 {
+      font-size: 30pt;
+      color: #075785;
+      margin: 20mm 0 8mm;
+      line-height: 1.12;
+    }
+    h2 {
+      break-before: page;
+      font-size: 18pt;
+      color: #075785;
+      border-bottom: 2px solid #08a2a6;
+      padding-bottom: 3mm;
+      margin-top: 0;
+    }
+    h3 {
+      font-size: 12pt;
+      color: #08747b;
+      margin: 5mm 0 2mm;
+    }
+    h1,
+    h2,
+    h3 {
+      break-after: avoid;
+    }
+    p {
+      margin: 2mm 0 3mm;
+      break-inside: avoid;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 3mm 0 4mm;
+      font-size: 8.8pt;
+      table-layout: fixed;
+    }
+    th,
+    td {
+      border: 1px solid #cbd9e4;
+      padding: 1.5mm 2.5mm;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+    th {
+      background: #e8f3f8;
+      text-align: left;
+      color: #075785;
+    }
+    th:first-child,
+    td:first-child {
+      width: 30%;
+    }
+    tr {
+      break-inside: avoid;
+    }
+    thead {
+      display: table-header-group;
+    }
+    code {
+      font:
+        8.4pt Consolas,
+        monospace;
+      color: #064c72;
+    }
+    li {
+      margin: 1.4mm 0;
+    }
+    ul {
+      padding-left: 5mm;
+    }
+    a {
+      color: #075785;
+      text-decoration: none;
+    }
+    .toc {
+      break-before: page;
+    }
+    .toc ul {
+      columns: 2;
+      column-gap: 9mm;
+      list-style: none;
+      padding: 0;
+    }
+    .toc li {
+      break-inside: avoid;
+      margin-bottom: 3mm;
+    }
+    .cover-note {
+      background: #e8f3f8;
+      padding: 6mm;
+      border-left: 4px solid #08a2a6;
+    }
+  </style>
+  <body>
+    <h1 id="section-0">AEMS manual testing guide</h1>
+    <p>
+      Special engagement → planning → entry conference → fieldwork → Issues and
+      AFRs → exit conference → final report → CMS transfer
+    </p>
+    <p>
+      <strong
+        >BPLD business permit assessment, collection and reconciliation</strong
+      >
+    </p>
+    <p>
+      Prepared for AGIS local acceptance testing • 8 September 2026 • Version
+      1.0
+    </p>
+    <p>
+      Primary auditee: <strong>Oxanna S. Custodio, BPLD Head</strong>, Business
+      Permits and Licensing Division. Maria L. Santos remains an additional BPLD
+      representative; use Oxanna for this guide's recipient, custodian and
+      responsible-person selections.
+    </p>
+    <p>
+      This is an executable manual test specification, not a report that the
+      full journey has passed. Record actual results and defects as you run it.
+      Workflow and field coverage were checked against the current repository's
+      forms, request validation and transition services. Where a field is
+      missing, a selector is empty or a gate rejects correct input, record a
+      defect rather than altering the database to force a pass.
+    </p>
+    <p>
+      All business amounts, observations, policies, correspondence and
+      attachments in this guide are <strong>synthetic test fixtures</strong>.
+      Named accounts identify application test actors. The example finding is
+      not an allegation about BPLD or any person. The fictional SOP is test
+      criteria, not a statement of an actual ordinance or COA requirement.
+    </p>
+    <nav class="toc">
+      <h2>Contents</h2>
+      <ul>
+        <li>
+          <a href="#section-1">01 · Test setup, dates and result recording</a>
+        </li>
+        <li>
+          <a href="#section-2"
+            >02 · Login accounts, permissions and ownership</a
+          >
+        </li>
+        <li>
+          <a href="#section-3"
+            >03 · Lifecycle roadmap and record dependencies</a
+          >
+        </li>
+        <li><a href="#section-4">04 · Create the special engagement</a></li>
+        <li><a href="#section-5">05 · Define BPLD scope and coverage</a></li>
+        <li>
+          <a href="#section-6">06 · Assign team and approve safeguards</a>
+        </li>
+        <li>
+          <a href="#section-7"
+            >07 · AEO approval, issuance and Oxanna acknowledgement</a
+          >
+        </li>
+        <li>
+          <a href="#section-8"
+            >08 · Planning workspace draft and preliminary survey</a
+          >
+        </li>
+        <li>
+          <a href="#section-9">09 · Objectives and structured process flows</a>
+        </li>
+        <li><a href="#section-10">10 · Audit Engagement Plan</a></li>
+        <li>
+          <a href="#section-11"
+            >11 · Audit Program and three procedure details</a
+          >
+        </li>
+        <li>
+          <a href="#section-12">12 · Risk Matrix register and risk items</a>
+        </li>
+        <li>
+          <a href="#section-13"
+            >13 · KPIs, planned papers and planning approval</a
+          >
+        </li>
+        <li>
+          <a href="#section-14"
+            >14 · Entry Conference: schedule, hold, notes and acknowledgement</a
+          >
+        </li>
+        <li>
+          <a href="#section-15"
+            >15 · Start Fieldwork and activate the program</a
+          >
+        </li>
+        <li>
+          <a href="#section-16"
+            >16 · Evidence request and Oxanna's CMS upload</a
+          >
+        </li>
+        <li>
+          <a href="#section-17"
+            >17 · Audit evidence metadata, assessment and Working Papers</a
+          >
+        </li>
+        <li>
+          <a href="#section-18"
+            >18 · Fieldwork Records and procedure completion</a
+          >
+        </li>
+        <li>
+          <a href="#section-19">19 · Issue, AFR finding and recommendations</a>
+        </li>
+        <li>
+          <a href="#section-20"
+            >20 · Communicate AFR, management response and rejoinder</a
+          >
+        </li>
+        <li>
+          <a href="#section-21"
+            >21 · Exit Conference: schedule first, actual details later</a
+          >
+        </li>
+        <li>
+          <a href="#section-22"
+            >22 · Draft report and independent quality review</a
+          >
+        </li>
+        <li>
+          <a href="#section-23"
+            >23 · Final report, authority, issuance and distribution</a
+          >
+        </li>
+        <li>
+          <a href="#section-24"
+            >24 · CMS transfer, reconciliation and handoff acceptance</a
+          >
+        </li>
+        <li>
+          <a href="#section-25"
+            >25 · Optional completion/closure and exception branches</a
+          >
+        </li>
+        <li>
+          <a href="#section-26"
+            >26 · Negative, persistence and access regression matrix</a
+          >
+        </li>
+        <li>
+          <a href="#section-27"
+            >27 · Troubleshooting and known verification boundaries</a
+          >
+        </li>
+        <li><a href="#section-28">28 · Final run sheet and source index</a></li>
+      </ul>
+    </nav>
+    <h2 id="section-1">01 · Test setup, dates and result recording</h2>
+    <p>
+      Use a fresh special engagement for each run. Do not reuse the earlier
+      AEMS-2026-001 engagement: its versions, approvals and links may already be
+      locked. Keep the generated engagement code and all generated record IDs in
+      your run sheet.
+    </p>
+    <p>
+      The normal path below uses one audit program, three procedures, three
+      process flows, three risk items, three working papers and three fieldwork
+      records. It produces one finding with two recommendations and therefore
+      two expected CMS cases. Each repeated form row has a defined value below.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Setup field</th>
+          <th>Value / instruction</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Test run code</td>
+          <td>BPLD-UAT-20260908-A; replace date and suffix on repeat runs</td>
+        </tr>
+        <tr>
+          <td>Application</td>
+          <td>Your running AGIS local site; open the normal login page</td>
+        </tr>
+        <tr>
+          <td>T (test date)</td>
+          <td>Actual local date when running; example 2026-09-08</td>
+        </tr>
+        <tr>
+          <td>Authority date</td>
+          <td>T minus 1 day; example 2026-09-07</td>
+        </tr>
+        <tr>
+          <td>Planned engagement period</td>
+          <td>T through T+14; example 2026-09-08 to 2026-09-22</td>
+        </tr>
+        <tr>
+          <td>Expected report date</td>
+          <td>T+21; example 2026-09-29</td>
+        </tr>
+        <tr>
+          <td>Record request deadline</td>
+          <td>T+2; example 2026-09-10; must not be before today</td>
+        </tr>
+        <tr>
+          <td>Evidence obtained / work performed</td>
+          <td>T; evidence obtained cannot be a future date</td>
+        </tr>
+        <tr>
+          <td>Audit population period</td>
+          <td>
+            2026-08-01 through 2026-08-31; historical transaction period,
+            distinct from engagement dates
+          </td>
+        </tr>
+        <tr>
+          <td>Recommendation target 1 / 2</td>
+          <td>T+30 / T+45; example 2026-10-08 / 2026-10-23</td>
+        </tr>
+        <tr>
+          <td>Conference scheduling</td>
+          <td>
+            Schedule T at the next convenient time. Record actual held time only
+            after the simulated meeting; use chronological real test times
+          </td>
+        </tr>
+        <tr>
+          <td>Business data</td>
+          <td>
+            60 fictional permit transactions, 12 sampled, 3 exceptions; use
+            accompanying CSV and SOP fixtures
+          </td>
+        </tr>
+        <tr>
+          <td>Browser sessions</td>
+          <td>
+            Separate profiles/private windows for preparer, reviewer/approver
+            and Oxanna, or sign out between actors
+          </td>
+        </tr>
+        <tr>
+          <td>Status per test</td>
+          <td>NOT RUN, PASS, FAIL or BLOCKED</td>
+        </tr>
+        <tr>
+          <td>Evidence per test</td>
+          <td>
+            Screenshot filename, generated record code, current version, acting
+            account, timestamp, actual result and defect ID
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      A same-day demonstration may simulate all meetings and procedures on T,
+      with future planned end dates. Do not claim that future events have
+      occurred. For a calendar-realistic run, perform the steps over the planned
+      period. Avoid future evidence dates simply to match planned dates.
+    </p>
+    <p>
+      For every save: wait for success, refresh, reopen the record and compare
+      each input below. A toast alone is not proof of persistence. For every
+      transition: verify status, actor, timestamp and history. System-generated
+      codes, IDs, checksums, version numbers and lock versions are captured from
+      the application; do not type example database IDs.
+    </p>
+    <h2 id="section-2">02 · Login accounts, permissions and ownership</h2>
+    <p>
+      On the login page click the demo account card to populate the employee ID
+      and configured password, then click Sign in. The card is a credential
+      selector. Local demo passwords default to <code>lala</code> unless
+      overridden by environment configuration. Use the card's configured value
+      rather than assuming a deployed password.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Actor / account</th>
+          <th>Use in this run</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Oxanna S. Custodio — BPLD-HEAD</td>
+          <td>
+            Main auditee; BPLD office. AEO acknowledgement, entry notes,
+            requested evidence upload and responsible person for recommendations
+          </td>
+        </tr>
+        <tr>
+          <td>Maria L. Santos — AUDITEE-001</td>
+          <td>
+            Secondary BPLD representative; use in recipient-scope checks, not as
+            the main custodian
+          </td>
+        </tr>
+        <tr>
+          <td>Marissa Barcellona — CIAS-AUD-004</td>
+          <td>Engagement Team Leader; prepare AEO, AEP, program and report</td>
+        </tr>
+        <tr>
+          <td>Charry Bagongon — CIAS-AUD-001</td>
+          <td>
+            Auditor; execute all three procedures and prepare working papers /
+            fieldwork records
+          </td>
+        </tr>
+        <tr>
+          <td>Kristine Yare — CIAS-AUD-002</td>
+          <td>
+            Reviewer; independent reviews where permissions and engagement
+            assignment allow
+          </td>
+        </tr>
+        <tr>
+          <td>Cherrybelle A. Lao — CIAS-HEAD-001</td>
+          <td>
+            Supervisor and approval/finalization actor where granted permissions
+            allow
+          </td>
+        </tr>
+        <tr>
+          <td>Michele Dampog — CIAS-AUD-003</td>
+          <td>
+            Additional independent issuer/approver if an action requires a
+            different person; assign and grant relevant permission before use
+          </td>
+        </tr>
+        <tr>
+          <td>Kim V. Lao — AGIS-ADMIN-001</td>
+          <td>
+            Test account/permission configuration; administrative role alone
+            does not confer audit approval
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Precondition: use Administration → roles/permissions to inspect the actual
+      allowed actions. Titles are examples of responsibility, not authorization
+      rules. A reviewer needs the relevant review permission and engagement
+      scope; an approver needs the relevant approve/finalize permission. Team
+      roles must be assigned within this engagement.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>Permission family / expected restriction</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Registry, scope and lifecycle</td>
+          <td>
+            <code>aems.engagement.*</code>, foundation scope permissions; use
+            the named permission shown by the relevant screen
+          </td>
+        </tr>
+        <tr>
+          <td>Team and safeguards</td>
+          <td>
+            <code>aems.team.*</code>; current approved ARMIS capacity and
+            accepted independence declarations
+          </td>
+        </tr>
+        <tr>
+          <td>AEO / AEP / Program</td>
+          <td>
+            <code>aems.aeo.*</code>, <code>aems.aep.*</code>,
+            <code>aems.program.*</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Planning package</td>
+          <td><code>aems.planning-package.*</code></td>
+        </tr>
+        <tr>
+          <td>Fieldwork</td>
+          <td>
+            <code>aems.fieldwork.create</code>,
+            <code>aems.fieldwork.review</code>,
+            <code>aems.fieldwork.finalize</code>, plus view permission
+          </td>
+        </tr>
+        <tr>
+          <td>Evidence and Working Papers</td>
+          <td>
+            <code>aems.evidence.*</code>, <code>aems.evidence-request.*</code>,
+            <code>aems.working-paper.*</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Auditee evidence response</td>
+          <td>
+            <code>aems.evidence-request.view</code>,
+            <code>aems.evidence-request.respond</code>,
+            <code>access.auditee_scope</code>; office/user recipient checks
+            still apply
+          </td>
+        </tr>
+        <tr>
+          <td>AEO acknowledgement</td>
+          <td>
+            <code>aems.aeo.acknowledge</code>; exact recipient office/user must
+            match
+          </td>
+        </tr>
+        <tr>
+          <td>Own-submission exception</td>
+          <td>
+            Explicit self-review/self-approval permission, where supported.
+            Never infer it from CIAS Head title. Use independent actors for the
+            main run
+          </td>
+        </tr>
+        <tr>
+          <td>Findings, dialogue, reports</td>
+          <td>
+            Relevant <code>aems.issue.*</code>, finding, management-response,
+            rejoinder and report permissions exposed in the permission registry
+          </td>
+        </tr>
+        <tr>
+          <td>Completion reconciliation</td>
+          <td>
+            <code>aems.completion-transfer.view</code>, <code>.reconcile</code>,
+            <code>.approve</code>; independent approval may still be required
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>LOGIN-01:</strong> click Oxanna's card, sign in, confirm Oxanna's
+      name and BPLD office. Open CMS. Expected: authorized CMS pages load and
+      other offices' records remain hidden. Log out and confirm protected pages
+      require login. Do not modify Maria's identity to imitate Oxanna.
+    </p>
+    <h2 id="section-3">03 · Lifecycle roadmap and record dependencies</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Required result before moving forward</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1. DRAFT</td>
+          <td>
+            Special authority and exactly one auditee office with area/focus
+            coverage saved
+          </td>
+        </tr>
+        <tr>
+          <td>2. AUTHORIZATION_PREPARATION</td>
+          <td>
+            Required team, safeguards and current AEO prepared/reviewed/approved
+          </td>
+        </tr>
+        <tr>
+          <td>3. AUTHORIZED</td>
+          <td>
+            Issue Authorization gate passes; issue and transmit AEO, obtain BPLD
+            acknowledgement
+          </td>
+        </tr>
+        <tr>
+          <td>4. ENGAGEMENT_PLANNING</td>
+          <td>
+            Create planning draft first; approve AEP and program, complete
+            planning traceability and approve package
+          </td>
+        </tr>
+        <tr>
+          <td>5. ENTRY_CONFERENCE</td>
+          <td>
+            Start Entry Conference; schedule, hold, record notes,
+            complete/acknowledge
+          </td>
+        </tr>
+        <tr>
+          <td>6. FIELDWORK</td>
+          <td>
+            Start Fieldwork; separately activate approved audit program; receive
+            evidence, assess, approve papers, finalize records, complete
+            procedure progress
+          </td>
+        </tr>
+        <tr>
+          <td>7. FINDINGS_COMMUNICATION</td>
+          <td>
+            End Fieldwork; resolve issues, communicate AFR, receive/dispose
+            response and finalize findings
+          </td>
+        </tr>
+        <tr>
+          <td>8. EXIT_CONFERENCE</td>
+          <td>
+            Start Exit Conference only after issues are dismissed/converted and
+            current findings finalized; schedule then complete
+          </td>
+        </tr>
+        <tr>
+          <td>9. REPORTING</td>
+          <td>
+            Completed exit conference and reporting gates; draft review then
+            final approval/issuance
+          </td>
+        </tr>
+        <tr>
+          <td>10. ISSUED / Completion &amp; Transfer</td>
+          <td>
+            Transfer issued recommendations once, verify CMS cases, reconcile
+            transfer and resource effort
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Always execute lifecycle actions from the engagement's Overview/Lifecycle
+      workspace when child records are ready. Completing a child document does
+      not guarantee the aggregate automatically advances. Reload the allowed
+      actions and read each blocker.
+    </p>
+    <p>
+      Planning's initial “Blocked” label concerns fieldwork readiness. It is
+      expected before planning approval; a planning draft does not need an
+      already-created Audit Program. Execution can be in FIELDWORK while the
+      approved program has not yet been activated; that explains empty procedure
+      lists.
+    </p>
+    <h2 id="section-4">04 · Create the special engagement</h2>
+    <p>
+      <strong>ENG-01</strong> — Actor: Marissa or another permitted engagement
+      creator. Navigation: AEMS → Audit Engagement Workspace → Create special
+      engagement. Use these registry fields; complete the dedicated Scope screen
+      next.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Engagement code</td>
+          <td>Leave blank for automatic code. Record the returned value</td>
+        </tr>
+        <tr>
+          <td>Title</td>
+          <td>
+            BPLD-UAT-20260908-A — Special Audit of Business Permit Assessment,
+            Collection and Reconciliation
+          </td>
+        </tr>
+        <tr>
+          <td>Source type</td>
+          <td>Special (system sets this for special creation)</td>
+        </tr>
+        <tr>
+          <td>Special authority reference</td>
+          <td>DEMO-MO-2026-091</td>
+        </tr>
+        <tr>
+          <td>Special authority type</td>
+          <td>Mayor Directive / MAYOR_DIRECTIVE if available</td>
+        </tr>
+        <tr>
+          <td>Special authority class</td>
+          <td>SPECIAL</td>
+        </tr>
+        <tr>
+          <td>Authority date</td>
+          <td>T-1</td>
+        </tr>
+        <tr>
+          <td>Approving authority / Approved by</td>
+          <td>
+            City Mayor, selected from available users; documentary source
+            authority is separate from application approver
+          </td>
+        </tr>
+        <tr>
+          <td>Audit type</td>
+          <td>Compliance Audit, or the configured compliance-audit label</td>
+        </tr>
+        <tr>
+          <td>Engagement approach</td>
+          <td>Risk-based, using the configured matching option</td>
+        </tr>
+        <tr>
+          <td>Background</td>
+          <td>
+            A synthetic August 2026 register contains 60 permit transactions.
+            Management requests assurance that assessment, official-receipt
+            recording and daily reconciliation controls operate consistently.
+          </td>
+        </tr>
+        <tr>
+          <td>Objectives</td>
+          <td>
+            Determine whether assessment computations are accurate, recorded
+            receipts agree to assessments, and daily reconciliation differences
+            are identified and resolved.
+          </td>
+        </tr>
+        <tr>
+          <td>Scope</td>
+          <td>
+            BPLD records for 1–31 August 2026 covering assessment, receipt
+            references retained by BPLD, and daily reconciliation of permit
+            transactions.
+          </td>
+        </tr>
+        <tr>
+          <td>Exclusions</td>
+          <td>
+            Treasury-wide cash custody, bank confirmation, procurement, payroll
+            and periods outside August 2026 are excluded. Treasury source copies
+            are used only to corroborate BPLD records.
+          </td>
+        </tr>
+        <tr>
+          <td>Planned start / end</td>
+          <td>T / T+14</td>
+        </tr>
+        <tr>
+          <td>Expected report date</td>
+          <td>T+21</td>
+        </tr>
+        <tr>
+          <td>Planned person-days</td>
+          <td>26</td>
+        </tr>
+        <tr>
+          <td>Office / audit areas / focuses if shown here</td>
+          <td>
+            BPLD / REVENUE / REV-ASS, REV-COLL, REV-REC; dedicated Scope page
+            remains the authoritative coverage step
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Save and reload. Expected: DRAFT, special-source lineage preserved,
+      correct dates and 26 days. Objectives/scope/exclusions must display your
+      text. If any field is unavailable, capture the missing control and the
+      resulting “Not specified” as a defect; do not silently treat empty content
+      as tested.
+    </p>
+    <p>
+      Upload <code>BPLD-UAT-criteria-and-authority.txt</code> into Document
+      Management if a source-document control is available. Record its actual
+      Core Document Version. It is conspicuously marked synthetic and must not
+      be represented as a genuine mayoral directive.
+    </p>
+    <h2 id="section-5">05 · Define BPLD scope and coverage</h2>
+    <p>
+      <strong>SCOPE-01</strong> — AEMS → Audit Scope; select the new engagement.
+      Save while scope is editable, before authorization.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Engagement Office</td>
+          <td>BPLD — Business Permits and Licensing Division; exactly one</td>
+        </tr>
+        <tr>
+          <td>Scope boundaries</td>
+          <td>
+            Assessment-to-reconciliation records for 60 August 2026 permit
+            transactions; include BPLD's retained receipt and reconciliation
+            references.
+          </td>
+        </tr>
+        <tr>
+          <td>Known limitations</td>
+          <td>
+            Synthetic records only; no real taxpayer records or independent bank
+            confirmations. Findings are limited to the 12 sampled transactions.
+          </td>
+        </tr>
+        <tr>
+          <td>Source variance decision</td>
+          <td>
+            NOT_APPLICABLE — special engagement has no imported IAP baseline
+          </td>
+        </tr>
+        <tr>
+          <td>Variance authority</td>
+          <td>DEMO-MO-2026-091</td>
+        </tr>
+        <tr>
+          <td>Variance explanation</td>
+          <td>
+            No IAP source is imported. Coverage follows the special directive
+            and is confined to BPLD.
+          </td>
+        </tr>
+        <tr>
+          <td>In-scope Audit Areas</td>
+          <td>REVENUE — Revenue, Tax, Permit and Fee Administration</td>
+        </tr>
+        <tr>
+          <td>Audit Focuses</td>
+          <td>
+            REV-ASS — Assessment and Billing; REV-COLL — Collection and Official
+            Receipts; REV-REC — Revenue Reconciliation
+          </td>
+        </tr>
+        <tr>
+          <td>Area objective</td>
+          <td>
+            Evaluate accuracy, completeness and timely reconciliation of BPLD
+            permit assessment and receipt records.
+          </td>
+        </tr>
+        <tr>
+          <td>Area boundary</td>
+          <td>
+            BPLD assessment worksheets, receipt-reference register and daily
+            reconciliation files for August 2026.
+          </td>
+        </tr>
+        <tr>
+          <td>Area limitations</td>
+          <td>
+            No assurance over Treasury operations outside the BPLD record trail.
+          </td>
+        </tr>
+        <tr>
+          <td>Area source variance</td>
+          <td>
+            Not applicable — coverage established directly by DEMO-MO-2026-091.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Expected: one office, one area, three focuses persist after refresh. Other
+      areas' focuses cannot be selected. Switch to Overview/Lifecycle → Prepare
+      Authorization; expected AUTHORIZATION_PREPARATION. Team workspace should
+      now unlock.
+    </p>
+    <h2 id="section-6">06 · Assign team and approve safeguards</h2>
+    <p>
+      <strong>TEAM-01</strong> — AEMS → Audit Team. For every assignment set
+      assigned from T, until T+14. Select the user and role from the
+      application's lists. The named team is independent of auditee Oxanna.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>User / assignment role</th>
+          <th>Planned days / assignment notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cherrybelle A. Lao / SUPERVISOR</td>
+          <td>
+            4 / Supervise scope and approve controlled outputs within granted
+            authority.
+          </td>
+        </tr>
+        <tr>
+          <td>Marissa Barcellona / TEAM_LEADER</td>
+          <td>
+            6 / Coordinate survey, planning, conferences and report preparation.
+          </td>
+        </tr>
+        <tr>
+          <td>Charry Bagongon / AUDITOR</td>
+          <td>
+            12 / Execute PROC-01, PROC-02 and PROC-03; prepare work and evidence
+            trail.
+          </td>
+        </tr>
+        <tr>
+          <td>Kristine Yare / REVIEWER</td>
+          <td>4 / Independently review planning and execution support.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      For optional assignment Reason enter “Initial team established for
+      BPLD-UAT-20260908-A.” Amendment authority and consequence assessment
+      remain blank for initial assignments. In the amendment branch use
+      authority “DEMO-TEAM-AMEND-01”, reason “Auditor unavailable for the
+      remaining test period” and consequence “Reallocate remaining work;
+      reassess safeguards and capacity before proceeding.”
+    </p>
+    <p>
+      ARMIS is the resource source. If an assignee lacks approved
+      availability/capacity/competencies for T..T+14, record BLOCKED, resolve
+      the actual ARMIS setup, then reassess. Merely entering 26 days into AEMS
+      does not satisfy provider checks. Do not change provider authority or
+      disable gates to make this test pass.
+    </p>
+    <p>
+      <strong>TEAM-02</strong> — Each team member submits all required
+      declaration types. Repeat the following for OBJECTIVITY,
+      CONFLICT_OF_INTEREST and INDEPENDENCE.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Declaration field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Type</td>
+          <td>OBJECTIVITY, then CONFLICT_OF_INTEREST, then INDEPENDENCE</td>
+        </tr>
+        <tr>
+          <td>Outcome</td>
+          <td>CLEAR, only for this fictional test scenario</td>
+        </tr>
+        <tr>
+          <td>Statement</td>
+          <td>
+            I have no personal, financial or operational involvement in the BPLD
+            records used in this synthetic test and can perform my assigned work
+            objectively.
+          </td>
+        </tr>
+        <tr>
+          <td>Mitigation plan</td>
+          <td>
+            Blank for CLEAR; branch DISCLOSED uses “Reassign the affected
+            procedure and document independent review.”
+          </td>
+        </tr>
+        <tr>
+          <td>Evidence Document Version</td>
+          <td>
+            Optional: actual uploaded declaration fixture version; otherwise
+            blank
+          </td>
+        </tr>
+        <tr>
+          <td>Revision reason</td>
+          <td>
+            Blank initially; if returned: “Clarified the period and scope
+            covered by the declaration.”
+          </td>
+        </tr>
+        <tr>
+          <td>Reviewer decision / notes</td>
+          <td>
+            ACCEPT / Reviewed the declaration for the engagement period; no
+            disclosed conflict in the test scenario.
+          </td>
+        </tr>
+        <tr>
+          <td>Assessment approval comment</td>
+          <td>
+            Team declarations and current ARMIS suitability checks reviewed;
+            required assignments are ready.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Generate/assess safeguards, then use an eligible independent approver.
+      Expected: required declarations accepted and current assessment approved.
+      Missing/stale provider information or any unresolved conflict must block
+      authorization/fieldwork.
+    </p>
+    <h2 id="section-7">
+      07 · AEO approval, issuance and Oxanna acknowledgement
+    </h2>
+    <p>
+      <strong>AEO-01</strong> — AEMS → Engagement Orders → Create. Marissa
+      prepares; Kristine reviews; Cherrybelle approves subject to permissions
+      and separation rules.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Authority</td>
+          <td>
+            DEMO-MO-2026-091, dated T-1, authorizes a synthetic special audit of
+            BPLD permit controls.
+          </td>
+        </tr>
+        <tr>
+          <td>Objectives</td>
+          <td>
+            Verify accurate assessment, complete receipt references and
+            documented reconciliation for August 2026 permit records.
+          </td>
+        </tr>
+        <tr>
+          <td>Scope</td>
+          <td>
+            BPLD assessment-to-reconciliation records; 60 transactions, 12
+            risk-selected samples; exclusions as saved in engagement definition.
+          </td>
+        </tr>
+        <tr>
+          <td>Effectivity date</td>
+          <td>T</td>
+        </tr>
+        <tr>
+          <td>Planned start / end</td>
+          <td>T / T+14</td>
+        </tr>
+        <tr>
+          <td>Change reason</td>
+          <td>
+            Blank initially; revision: “Clarified audit period and BPLD-only
+            coverage.”
+          </td>
+        </tr>
+        <tr>
+          <td>Submit comment</td>
+          <td>
+            AEO ready for independent review against the special authority and
+            scope.
+          </td>
+        </tr>
+        <tr>
+          <td>Review comment</td>
+          <td>
+            Authority, one-office coverage, dates and team responsibilities
+            agree to the engagement.
+          </td>
+        </tr>
+        <tr>
+          <td>Approval comment</td>
+          <td>
+            Approve this reviewed AEO version for the BPLD test engagement.
+          </td>
+        </tr>
+        <tr>
+          <td>Signature method if prompted</td>
+          <td>IN_APP_ATTESTATION</td>
+        </tr>
+        <tr>
+          <td>Signature reference</td>
+          <td>DEMO-AEO-ATTEST-01</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Save → Submit → Record review → Approve the AEO. From Lifecycle run Issue
+      Authorization to move from AUTHORIZATION_PREPARATION to AUTHORIZED; the
+      current active AEO must be APPROVED or ISSUED. Then issue and transmit the
+      AEO using an appropriately permitted actor. Start Planning becomes
+      available once the issued AEO's current version has been acknowledged by
+      the engagement office or a recipient belonging to that office. Verify the
+      aggregate lifecycle and child AEO status separately; one does not
+      automatically advance the other. Authorizing your own engagement still
+      requires the explicit own-submission review permission.
+    </p>
+    <p><strong>AEO-02</strong> — Transmit the issued version.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Distribution field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Recipient type</td>
+          <td>USER</td>
+        </tr>
+        <tr>
+          <td>Recipient user</td>
+          <td>Oxanna S. Custodio — BPLD-HEAD</td>
+        </tr>
+        <tr>
+          <td>Recipient office if enabled</td>
+          <td>BPLD</td>
+        </tr>
+        <tr>
+          <td>Recipient name if enabled</td>
+          <td>Oxanna S. Custodio</td>
+        </tr>
+        <tr>
+          <td>Transmittal method</td>
+          <td>SECURE_PORTAL</td>
+        </tr>
+        <tr>
+          <td>Reference</td>
+          <td>DEMO-AEO-TX-01</td>
+        </tr>
+        <tr>
+          <td>Acknowledgement note</td>
+          <td>
+            Received the issued AEO for BPLD. Oxanna S. Custodio will coordinate
+            records and conference attendance.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Sign in as Oxanna → CMS → AEO Acknowledgements → select the exact
+      transmittal → acknowledge. Refresh as auditor; acknowledgement actor/date
+      must be present. Download the issued AEO PDF and check office, scope, code
+      and version. Lifecycle → Start Planning must now pass; a missing auditee
+      acknowledgement must block it.
+    </p>
+    <h2 id="section-8">08 · Planning workspace draft and preliminary survey</h2>
+    <p>
+      <strong>PLAN-01</strong> — AEMS → Planning Workspace → select engagement →
+      Create draft. Create it before Audit Program if needed. Do not interpret
+      fieldwork-blocked status as a prohibition on draft creation.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Preliminary Survey field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Purpose</td>
+          <td>
+            Understand BPLD assessment, receipt-reference and reconciliation
+            controls and identify procedures for August 2026 testing.
+          </td>
+        </tr>
+        <tr>
+          <td>Background</td>
+          <td>
+            Synthetic register contains 60 permit transactions; manual reviewer
+            sign-off supports daily reconciliation.
+          </td>
+        </tr>
+        <tr>
+          <td>Information sources</td>
+          <td>
+            BPLD-UAT-permit-register.csv; BPLD-UAT-criteria-and-authority.txt;
+            walkthrough and interview notes.
+          </td>
+        </tr>
+        <tr>
+          <td>Interviews</td>
+          <td>
+            Oxanna S. Custodio explained record ownership, assessment review and
+            daily reconciliation responsibilities on T.
+          </td>
+        </tr>
+        <tr>
+          <td>Walkthroughs</td>
+          <td>
+            Traced DEMO-PERMIT-005 from application to assessment, receipt
+            reference and reconciliation; observed missing secondary sign-off.
+          </td>
+        </tr>
+        <tr>
+          <td>Observations</td>
+          <td>
+            Daily records contain three sampled items without reviewer sign-off;
+            other sample attributes are populated.
+          </td>
+        </tr>
+        <tr>
+          <td>Planning implications</td>
+          <td>
+            Test assessment calculations, receipt matching and independent
+            reconciliation review separately; preserve sample-level exceptions.
+          </td>
+        </tr>
+        <tr>
+          <td>Core Document Version ID</td>
+          <td>
+            Optional actual uploaded survey/support version; otherwise leave
+            blank, since narrative is supplied
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <table>
+      <thead>
+        <tr>
+          <th>Planning attribute field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Methodology</td>
+          <td>
+            Risk-based walkthrough, inspection, recalculation and reconciliation
+            using 12 selected transactions.
+          </td>
+        </tr>
+        <tr>
+          <td>Criteria framework</td>
+          <td>
+            Synthetic SOP BPLD-UAT-SOP-01, sections 1–3, supplied with this
+            guide.
+          </td>
+        </tr>
+        <tr>
+          <td>Evidence requirements</td>
+          <td>
+            Controlled register export, assessment and receipt references,
+            reviewer sign-off and documented interview corroboration.
+          </td>
+        </tr>
+        <tr>
+          <td>Milestones</td>
+          <td>
+            Planning approval; entry conference; 3 procedures finalized; AFR
+            dialogue; exit conference; final report; CMS transfer.
+          </td>
+        </tr>
+        <tr>
+          <td>Schedule</td>
+          <td>
+            Planning and entry T; fieldwork T..T+14; final report planned by
+            T+21.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Save a new version and reopen. Record version number. Initial
+      risks/program links may still be incomplete; finish sections 09–13 before
+      approval.
+    </p>
+    <h2 id="section-9">09 · Objectives and structured process flows</h2>
+    <p>
+      <strong>PLAN-02</strong> — Add each objective. Source type: SPECIAL where
+      offered, otherwise keep the form's supported default and enter the
+      authority in Source reference. Do not type an unsupported option.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Objective code</th>
+          <th>Statement / source reference</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>OBJ-01</td>
+          <td>
+            Determine whether permit assessments are correctly computed. /
+            DEMO-MO-2026-091; SOP section 1
+          </td>
+        </tr>
+        <tr>
+          <td>OBJ-02</td>
+          <td>
+            Determine whether BPLD receipt references completely match permit
+            assessments. / DEMO-MO-2026-091; SOP section 2
+          </td>
+        </tr>
+        <tr>
+          <td>OBJ-03</td>
+          <td>
+            Determine whether daily reconciliation exceptions receive documented
+            independent review. / DEMO-MO-2026-091; SOP section 3
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>PLAN-03</strong> — Add three process flows using this template.
+      Each list field receives one entry per line. Save flows before selecting
+      them in procedures/risk items.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Flow field</th>
+          <th>FLOW-01 value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Flow code / Title</td>
+          <td>FLOW-01 / Permit assessment and billing</td>
+        </tr>
+        <tr>
+          <td>Process owner office</td>
+          <td>BPLD</td>
+        </tr>
+        <tr>
+          <td>Audit area / focus</td>
+          <td>REVENUE / REV-ASS</td>
+        </tr>
+        <tr>
+          <td>Core Document Version ID</td>
+          <td>Blank; use narrative and source reference</td>
+        </tr>
+        <tr>
+          <td>Source reference</td>
+          <td>BPLD-UAT-SOP-01 section 1</td>
+        </tr>
+        <tr>
+          <td>Scope statement</td>
+          <td>
+            August 2026 BPLD assessment records for 60 synthetic permit
+            transactions.
+          </td>
+        </tr>
+        <tr>
+          <td>Description / narrative</td>
+          <td>
+            Intake validates application; assessor computes the test fee;
+            reviewer checks arithmetic; billing reference is recorded.
+          </td>
+        </tr>
+        <tr>
+          <td>Steps</td>
+          <td>
+            Receive application; validate classification; calculate fee;
+            independent arithmetic check; release assessment.
+          </td>
+        </tr>
+        <tr>
+          <td>Inputs</td>
+          <td>
+            Application reference; test fee schedule; declared classification.
+          </td>
+        </tr>
+        <tr>
+          <td>Outputs</td>
+          <td>Assessment amount; billing reference; reviewer approval.</td>
+        </tr>
+        <tr>
+          <td>Records / systems</td>
+          <td>Synthetic permit register; assessment worksheet.</td>
+        </tr>
+        <tr>
+          <td>Controls</td>
+          <td>CTRL-01: independent recomputation before release.</td>
+        </tr>
+        <tr>
+          <td>Decision points</td>
+          <td>
+            Is the application complete? Does the computed fee agree to the test
+            schedule?
+          </td>
+        </tr>
+        <tr>
+          <td>Risk points</td>
+          <td>
+            Incorrect classification; calculation error; missing reviewer check.
+          </td>
+        </tr>
+        <tr>
+          <td>Limitations</td>
+          <td>Synthetic workflow only; excludes unrelated charges.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      For FLOW-02 and FLOW-03 replace every process-specific field below; retain
+      BPLD owner, REVENUE area, August population and blank Core version.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>FLOW-02 / FLOW-03</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Title / focus</td>
+          <td>
+            Receipt-reference matching / REV-COLL; Daily reconciliation review /
+            REV-REC
+          </td>
+        </tr>
+        <tr>
+          <td>Source reference</td>
+          <td>SOP section 2 / SOP section 3</td>
+        </tr>
+        <tr>
+          <td>Scope statement</td>
+          <td>
+            BPLD retained receipt references for August permits / BPLD daily
+            reconciliation evidence for August permits
+          </td>
+        </tr>
+        <tr>
+          <td>Description</td>
+          <td>
+            Match receipt reference and amount to assessment before release /
+            Reconcile assessment and receipt records, investigate differences
+            and obtain secondary sign-off
+          </td>
+        </tr>
+        <tr>
+          <td>Steps</td>
+          <td>
+            Receive receipt reference; match permit; compare amount; record
+            receipt / Extract daily list; match totals; investigate differences;
+            reviewer signs; archive
+          </td>
+        </tr>
+        <tr>
+          <td>Inputs</td>
+          <td>
+            Assessment amount; receipt copy / Assessment register;
+            receipt-reference register
+          </td>
+        </tr>
+        <tr>
+          <td>Outputs</td>
+          <td>
+            Matched receipt entry; exception list / Signed reconciliation;
+            resolved exception record
+          </td>
+        </tr>
+        <tr>
+          <td>Records / systems</td>
+          <td>
+            Synthetic permit register and receipt copies / Synthetic
+            reconciliation review register
+          </td>
+        </tr>
+        <tr>
+          <td>Controls</td>
+          <td>
+            CTRL-02: one-to-one assessment and receipt matching / CTRL-03:
+            independent reconciliation sign-off
+          </td>
+        </tr>
+        <tr>
+          <td>Decision points</td>
+          <td>
+            Does receipt match amount and permit? / Are differences explained
+            and independently reviewed?
+          </td>
+        </tr>
+        <tr>
+          <td>Risk points</td>
+          <td>
+            Missing or duplicate reference; mismatch / Unreviewed exceptions;
+            delayed follow-up
+          </td>
+        </tr>
+        <tr>
+          <td>Limitations</td>
+          <td>
+            No independent Treasury-wide cash opinion / No external bank
+            confirmation
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Save/reload. All three scoped focuses must be selectable. Record a defect
+      if selecting REVENUE produces “No audit focuses” despite saved scope.
+    </p>
+    <h2 id="section-10">10 · Audit Engagement Plan</h2>
+    <p>
+      <strong>AEP-01</strong> — AEMS → Engagement Plan. Create and approve the
+      AEP before final planning-package approval.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Objectives</td>
+          <td>
+            OBJ-01 assessment accuracy; OBJ-02 receipt completeness; OBJ-03
+            documented independent reconciliation review.
+          </td>
+        </tr>
+        <tr>
+          <td>Scope</td>
+          <td>
+            BPLD August 2026 assessment, receipt-reference and reconciliation
+            records; 60 transactions and 12 selected samples.
+          </td>
+        </tr>
+        <tr>
+          <td>Exclusions</td>
+          <td>
+            Treasury-wide cash custody, external bank confirmation, procurement,
+            payroll and other periods.
+          </td>
+        </tr>
+        <tr>
+          <td>Methodology</td>
+          <td>
+            Walkthrough and interview; recalculate 12 assessments; match
+            receipts; inspect independent reconciliation sign-off; corroborate
+            exceptions.
+          </td>
+        </tr>
+        <tr>
+          <td>Audit criteria</td>
+          <td>
+            BPLD-UAT-SOP-01 sections 1, 2 and 3; synthetic acceptance-test
+            criteria.
+          </td>
+        </tr>
+        <tr>
+          <td>Materiality</td>
+          <td>
+            Assess control significance qualitatively. Report missing review
+            separately from monetary error; do not project sample exceptions to
+            the whole population.
+          </td>
+        </tr>
+        <tr>
+          <td>Sampling approach</td>
+          <td>
+            Judgmental sample of 12 IDs: 005, 010, 015, 020, 025, 030, 035, 040,
+            045, 050, 055 and 060. No statistical projection.
+          </td>
+        </tr>
+        <tr>
+          <td>Planned start / end / expected report</td>
+          <td>T / T+14 / T+21</td>
+        </tr>
+        <tr>
+          <td>Planned person-days</td>
+          <td>26</td>
+        </tr>
+        <tr>
+          <td>Staffing</td>
+          <td>
+            Supervisor 4, Team Leader 6, Auditor 12, Reviewer 4 person-days.
+          </td>
+        </tr>
+        <tr>
+          <td>Skills</td>
+          <td>
+            Permit assessment review, spreadsheet recalculation, record matching
+            and internal-control testing.
+          </td>
+        </tr>
+        <tr>
+          <td>Tools</td>
+          <td>AGIS, spreadsheet application and private document storage.</td>
+        </tr>
+        <tr>
+          <td>Logistics</td>
+          <td>
+            BPLD conference room; read-only synthetic exports; no real taxpayer
+            data.
+          </td>
+        </tr>
+        <tr>
+          <td>Contact person</td>
+          <td>Oxanna S. Custodio</td>
+        </tr>
+        <tr>
+          <td>Contact details</td>
+          <td>
+            bpld.test@example.invalid — synthetic contact; do not send external
+            email
+          </td>
+        </tr>
+        <tr>
+          <td>Kickoff details</td>
+          <td>
+            Entry conference on T after planning readiness; confirm BPLD records
+            coordinator and sample scope.
+          </td>
+        </tr>
+        <tr>
+          <td>Records deadline</td>
+          <td>T+2</td>
+        </tr>
+        <tr>
+          <td>Coordination notes</td>
+          <td>
+            Submit requested files using CMS Evidence Requests; maintain
+            original filenames and request links.
+          </td>
+        </tr>
+        <tr>
+          <td>Confidentiality</td>
+          <td>Internal</td>
+        </tr>
+        <tr>
+          <td>Change reason</td>
+          <td>
+            Blank initially; return branch: “Expanded sampling description to
+            identify all 12 items.”
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Save → Submit → independent Review → Approve. Use descriptive comments:
+      “Sampling, criteria, scope and resources reconciled to approved
+      authority.” Reopen the approved version and verify all fields. A formal
+      revision must preserve the old version and require reapproval where
+      applicable.
+    </p>
+    <h2 id="section-11">11 · Audit Program and three procedure details</h2>
+    <p>
+      <strong>AP-01</strong> — AEMS → Audit Program → Create. Keep one current
+      program for this run.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Program field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Title</td>
+          <td>BPLD August 2026 permit controls — UAT program</td>
+        </tr>
+        <tr>
+          <td>Objective</td>
+          <td>
+            Execute OBJ-01 through OBJ-03 and preserve evidence-backed
+            conclusions for each.
+          </td>
+        </tr>
+        <tr>
+          <td>AEP source</td>
+          <td>
+            Select the current approved AEP if editable; otherwise verify
+            automatic link
+          </td>
+        </tr>
+        <tr>
+          <td>Audit area / type</td>
+          <td>REVENUE / Compliance Audit</td>
+        </tr>
+        <tr>
+          <td>Audit period start / end</td>
+          <td>2026-08-01 / 2026-08-31</td>
+        </tr>
+        <tr>
+          <td>Audit criteria</td>
+          <td>BPLD-UAT-SOP-01 sections 1–3.</td>
+        </tr>
+        <tr>
+          <td>Risk statements, one per line</td>
+          <td>
+            R-01 inaccurate assessment; R-02 unmatched receipt; R-03 unreviewed
+            reconciliation.
+          </td>
+        </tr>
+        <tr>
+          <td>Sampling approach</td>
+          <td>
+            12 judgmental samples from 60 transactions; IDs at increments of
+            five.
+          </td>
+        </tr>
+        <tr>
+          <td>Planned working-paper requirements</td>
+          <td>
+            WP-01 assessment recalculation; WP-02 receipt matching; WP-03
+            reconciliation review.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>AP-02</strong> — AEMS → Audit Procedure Details → select
+      engagement/program → Add procedure. Repeat the full template for three
+      rows.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Procedure field</th>
+          <th>PROC-01 input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Procedure code / sequence</td>
+          <td>PROC-01 / 1</td>
+        </tr>
+        <tr>
+          <td>Objective</td>
+          <td>Verify assessment accuracy for the 12 sampled permits.</td>
+        </tr>
+        <tr>
+          <td>Procedure description</td>
+          <td>
+            Recalculate the synthetic assessment amount for each selected ID and
+            compare it with the recorded assessment. Investigate differences.
+          </td>
+        </tr>
+        <tr>
+          <td>Expected evidence</td>
+          <td>
+            Synthetic permit register, stated test-fee formula and recalculation
+            results.
+          </td>
+        </tr>
+        <tr>
+          <td>Assigned auditor</td>
+          <td>Charry Bagongon</td>
+        </tr>
+        <tr>
+          <td>Target date</td>
+          <td>T+7</td>
+        </tr>
+        <tr>
+          <td>Working-paper reference</td>
+          <td>WP-01</td>
+        </tr>
+        <tr>
+          <td>Audit area / focus</td>
+          <td>REVENUE / REV-ASS</td>
+        </tr>
+        <tr>
+          <td>Process name</td>
+          <td>Permit assessment and billing</td>
+        </tr>
+        <tr>
+          <td>Process flow</td>
+          <td>
+            Select saved FLOW-01; if the screen still asks for an ID, use the
+            actual saved flow ID, never a fabricated number
+          </td>
+        </tr>
+        <tr>
+          <td>Audit method</td>
+          <td>Inspection and recalculation</td>
+        </tr>
+        <tr>
+          <td>Planned person-days</td>
+          <td>4</td>
+        </tr>
+        <tr>
+          <td>Procedure criteria</td>
+          <td>
+            SOP section 1: test fee must equal PHP 1,000 plus PHP 100 multiplied
+            by transaction number.
+          </td>
+        </tr>
+        <tr>
+          <td>Sampling method</td>
+          <td>Judgmental, 12 items at increments of five</td>
+        </tr>
+        <tr>
+          <td>Population</td>
+          <td>60 synthetic August 2026 permit transactions</td>
+        </tr>
+        <tr>
+          <td>Sample size</td>
+          <td>12</td>
+        </tr>
+        <tr>
+          <td>Planned Working Paper reference</td>
+          <td>WP-01</td>
+        </tr>
+        <tr>
+          <td>Required evidence</td>
+          <td>Register rows and recalculation worksheet for the 12 IDs.</td>
+        </tr>
+        <tr>
+          <td>Risk statement IDs if displayed</td>
+          <td>Select R-01 / use the risk code offered by the form</td>
+        </tr>
+      </tbody>
+    </table>
+    <table>
+      <thead>
+        <tr>
+          <th>Replacement field</th>
+          <th>PROC-02 / PROC-03</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Sequence / working-paper reference</td>
+          <td>2 / WP-02; 3 / WP-03</td>
+        </tr>
+        <tr>
+          <td>Objective</td>
+          <td>
+            Verify receipt completeness and amount agreement / Verify
+            independent reconciliation review
+          </td>
+        </tr>
+        <tr>
+          <td>Description</td>
+          <td>
+            Match each sample's receipt reference and amount to the permit
+            assessment / Inspect reconciliation and reviewer sign-off for all 12
+            selected IDs; list missing sign-offs
+          </td>
+        </tr>
+        <tr>
+          <td>Expected / required evidence</td>
+          <td>
+            Receipt-reference and amount columns plus assessment entries /
+            Reconciliation reference, reviewer field and confirmation of three
+            exceptions
+          </td>
+        </tr>
+        <tr>
+          <td>Focus / process flow</td>
+          <td>REV-COLL / FLOW-02; REV-REC / FLOW-03</td>
+        </tr>
+        <tr>
+          <td>Process name</td>
+          <td>Receipt-reference matching / Daily reconciliation review</td>
+        </tr>
+        <tr>
+          <td>Audit method</td>
+          <td>Inspection and matching / Inspection and inquiry</td>
+        </tr>
+        <tr>
+          <td>Criteria</td>
+          <td>
+            SOP section 2: unique receipt reference and matching amount / SOP
+            section 3: independent reviewer sign-off on every reconciliation
+          </td>
+        </tr>
+        <tr>
+          <td>Target date / days</td>
+          <td>T+10 / 4; T+14 / 4</td>
+        </tr>
+        <tr>
+          <td>Sampling method / population / size</td>
+          <td>Same 12-ID judgmental sample / 60 transactions / 12, for both</td>
+        </tr>
+        <tr>
+          <td>Risk statement</td>
+          <td>R-02 / R-03</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Keep the assigned auditor Charry for all three. Submit, review and approve
+      the program once procedures are complete. Expected: APPROVED, three saved
+      procedures with all classifications and sampling details. Activation is
+      performed after Start Fieldwork (section 15), not assumed from approval.
+    </p>
+    <h2 id="section-12">12 · Risk Matrix register and risk items</h2>
+    <p>
+      <strong>RISK-01</strong> — Planning Workspace → Risk Matrix. Use one
+      register matrix covering REVENUE, with three risk items differentiated by
+      focus.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Matrix register field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Matrix code / title</td>
+          <td>RM-01 / BPLD permit controls risk matrix</td>
+        </tr>
+        <tr>
+          <td>Audit area</td>
+          <td>REVENUE</td>
+        </tr>
+        <tr>
+          <td>Audit focus</td>
+          <td>
+            Blank for the area-wide matrix; individual items carry specific
+            focuses
+          </td>
+        </tr>
+        <tr>
+          <td>Methodology</td>
+          <td>
+            Synthetic 5×5 likelihood-impact model. Score = likelihood × impact.
+            Low 1–4, Moderate 5–9, High 10–16, Critical 17–25. Assess controls
+            before setting residual risk.
+          </td>
+        </tr>
+        <tr>
+          <td>Risk appetite</td>
+          <td>
+            Low tolerance for inaccurate billing, unmatched receipts and
+            unreviewed reconciliations.
+          </td>
+        </tr>
+        <tr>
+          <td>Overall conclusion</td>
+          <td>
+            Prioritize reconciliation review; test assessment and receipt
+            controls to determine whether weaknesses are isolated or recurring.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>RISK-02</strong> — Add each risk item. Use REVENUE area and BPLD
+      responsible office for all. Numbers follow the synthetic rubric, not an
+      assertion about an official approved risk model.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>R-01</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Risk code / category / status</td>
+          <td>R-01 / Revenue accuracy / OPEN</td>
+        </tr>
+        <tr>
+          <td>Risk statement</td>
+          <td>
+            Incorrect assessment calculations may result in inaccurate permit
+            billing.
+          </td>
+        </tr>
+        <tr>
+          <td>Audit focus / flow / process</td>
+          <td>REV-ASS / FLOW-01 / Permit assessment and billing</td>
+        </tr>
+        <tr>
+          <td>Risk area</td>
+          <td>Assessment computation</td>
+        </tr>
+        <tr>
+          <td>Responsible office</td>
+          <td>BPLD</td>
+        </tr>
+        <tr>
+          <td>Risk response</td>
+          <td>Reduce</td>
+        </tr>
+        <tr>
+          <td>Inherent likelihood / impact / score</td>
+          <td>3 / 4 / 12</td>
+        </tr>
+        <tr>
+          <td>Control description</td>
+          <td>CTRL-01 independent recomputation before assessment release.</td>
+        </tr>
+        <tr>
+          <td>Control effectiveness</td>
+          <td>Partially effective — to be validated by sample testing.</td>
+        </tr>
+        <tr>
+          <td>Residual likelihood / impact / score / rating</td>
+          <td>2 / 3 / 6 / Moderate</td>
+        </tr>
+        <tr>
+          <td>Planned audit approach</td>
+          <td>
+            Recalculate all 12 selected assessments and document discrepancies.
+          </td>
+        </tr>
+        <tr>
+          <td>Criteria</td>
+          <td>BPLD-UAT-SOP-01 section 1</td>
+        </tr>
+        <tr>
+          <td>Response rationale</td>
+          <td>
+            Independent checking should reduce arithmetic error; obtain
+            operating evidence.
+          </td>
+        </tr>
+        <tr>
+          <td>Linked planning objectives</td>
+          <td>OBJ-01 from current package version</td>
+        </tr>
+        <tr>
+          <td>Linked approved-program procedures</td>
+          <td>PROC-01</td>
+        </tr>
+        <tr>
+          <td>Working-paper references</td>
+          <td>
+            WP-01; link basis if requested: Recalculation supports
+            assessment-risk conclusion.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <table>
+      <thead>
+        <tr>
+          <th>Replacement field</th>
+          <th>R-02 / R-03</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Category</td>
+          <td>Receipt completeness / Reconciliation oversight</td>
+        </tr>
+        <tr>
+          <td>Risk statement</td>
+          <td>
+            Missing or mismatched receipt references may leave billing unsettled
+            in BPLD records / Missing independent review may allow
+            reconciliation errors to remain undetected
+          </td>
+        </tr>
+        <tr>
+          <td>Focus / flow / process</td>
+          <td>
+            REV-COLL / FLOW-02 / Receipt-reference matching; REV-REC / FLOW-03 /
+            Daily reconciliation review
+          </td>
+        </tr>
+        <tr>
+          <td>Risk area</td>
+          <td>
+            Assessment-to-receipt matching / Independent reconciliation review
+          </td>
+        </tr>
+        <tr>
+          <td>Inherent likelihood, impact, score</td>
+          <td>3, 4, 12 / 4, 4, 16</td>
+        </tr>
+        <tr>
+          <td>Control</td>
+          <td>
+            CTRL-02 one-to-one reference/amount check / CTRL-03 secondary
+            sign-off and exception follow-up
+          </td>
+        </tr>
+        <tr>
+          <td>Control effectiveness</td>
+          <td>
+            Partially effective, pending test / Weak evidence of independent
+            review in survey
+          </td>
+        </tr>
+        <tr>
+          <td>Residual likelihood, impact, score, rating</td>
+          <td>2, 3, 6, Moderate / 3, 4, 12, High</td>
+        </tr>
+        <tr>
+          <td>Response / rationale</td>
+          <td>
+            Reduce; test completeness of matching / Reduce; prioritize evidence
+            of secondary review
+          </td>
+        </tr>
+        <tr>
+          <td>Approach</td>
+          <td>
+            Match references and amounts for 12 items / Inspect reconciliation
+            review for the 12 items
+          </td>
+        </tr>
+        <tr>
+          <td>Criteria</td>
+          <td>SOP section 2 / SOP section 3</td>
+        </tr>
+        <tr>
+          <td>Objective / procedure / paper links</td>
+          <td>OBJ-02 / PROC-02 / WP-02; OBJ-03 / PROC-03 / WP-03</td>
+        </tr>
+        <tr>
+          <td>Working-paper relationship basis</td>
+          <td>
+            Receipt match supports completeness conclusion / Sign-off test
+            supports oversight finding
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>RISK-03 persistence regression:</strong> Save new version, refresh
+      and switch tabs away/back. Confirm methodology, appetite and overall
+      conclusion remain verbatim, along with all three items and links. Add an
+      optional second matrix RM-02 titled “Reconciliation focus supplement”,
+      REVENUE / REV-REC, using the same rubric, appetite “Low tolerance for
+      missing secondary review” and conclusion “Track reviewer sign-off
+      exceptions.” Save/reload; both matrices must retain independent text. An
+      optional matrix can remain without items if the server permits; do not
+      create a duplicate R-03 merely to populate it.
+    </p>
+    <h2 id="section-13">13 · KPIs, planned papers and planning approval</h2>
+    <p>
+      <strong>PLAN-04</strong> — Add the following KPIs. Where offered,
+      responsible office is CIAS (City Internal Audit Office), status is the
+      form's active/default value and source reference is the program code.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Code / name</th>
+          <th>Target / measurement method</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>KPI-01 / Sample testing completion</td>
+          <td>
+            12 of 12 per procedure / Count documented tested sample IDs against
+            12 in each approved paper
+          </td>
+        </tr>
+        <tr>
+          <td>KPI-02 / Procedure completion</td>
+          <td>
+            3 of 3 / Count finalized fieldwork records and completed program
+            procedures
+          </td>
+        </tr>
+        <tr>
+          <td>KPI-03 / Findings disposition</td>
+          <td>
+            100% / Finalized current findings divided by current communicated
+            findings
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Add these planned Working Papers. These are requirements, not actual
+      execution papers; actual papers are created in section 17.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Reference / procedure</th>
+          <th>Title / objective / required evidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>WP-01 / PROC-01</td>
+          <td>
+            Assessment recalculation / Verify OBJ-01 / Register and 12-item
+            recalculation worksheet
+          </td>
+        </tr>
+        <tr>
+          <td>WP-02 / PROC-02</td>
+          <td>
+            Receipt matching / Verify OBJ-02 / Register and 12 receipt
+            references with amounts
+          </td>
+        </tr>
+        <tr>
+          <td>WP-03 / PROC-03</td>
+          <td>
+            Reconciliation sign-off testing / Verify OBJ-03 / 12 reconciliation
+            records and missing-sign-off exception list
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Risk item selector, if shown: use matching R-01/02/03. Required flag:
+      checked for all. Sequence: 1/2/3. Save with change reason “Completed
+      program, risk, KPI and planned-paper traceability.”
+    </p>
+    <p>
+      Readiness &amp; Review must show complete survey, objectives, structured
+      flows, area coverage, approved AEP/program,
+      risk-to-objective/procedure/paper links, complete program/procedure
+      definitions, KPIs and planned evidence. Resolve each failed check by
+      editing the actual source before submitting.
+    </p>
+    <p>
+      Submit as preparer; independent Review; Approve as authorized approver.
+      Expected approved version equals current version and fieldwork readiness
+      is true. Compare Versions before/after and check text retention. If
+      editing a process flow creates new IDs, refresh and reselect the current
+      links; do not reuse IDs copied from another engagement.
+    </p>
+    <p>
+      Lifecycle → Start Entry Conference. Expected ENTRY_CONFERENCE. Any
+      configured progress-assessment control must later receive its required
+      completion status and evidence reference before reporting. If your UI
+      lacks a control requested by a server gate, record that specific gap as
+      BLOCKED.
+    </p>
+    <h2 id="section-14">
+      14 · Entry Conference: schedule, hold, notes and acknowledgement
+    </h2>
+    <p>
+      <strong>ENTRY-01</strong> — Conference Management → Entry. First schedule
+      without claiming the conference has already happened.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Scheduling / participant field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Scheduled start / end</td>
+          <td>T at agreed time / 60 minutes later</td>
+        </tr>
+        <tr>
+          <td>Venue</td>
+          <td>BPLD meeting room — synthetic test session</td>
+        </tr>
+        <tr>
+          <td>Meeting link</td>
+          <td>
+            Blank for in-person session; optional URL branch uses
+            https://example.invalid/bpld-uat
+          </td>
+        </tr>
+        <tr>
+          <td>Online meeting details</td>
+          <td>
+            Blank in-person; URL branch: Synthetic link only, no external
+            meeting is launched.
+          </td>
+        </tr>
+        <tr>
+          <td>Agenda</td>
+          <td>
+            Authority and scope; objectives and sample; records access;
+            confidentiality; timetable and contacts.
+          </td>
+        </tr>
+        <tr>
+          <td>Participant 1 type / user / office / role</td>
+          <td>AUDIT_TEAM / Marissa / CIAS / Team Leader</td>
+        </tr>
+        <tr>
+          <td>Participant 2</td>
+          <td>AUDIT_TEAM / Charry / CIAS / Auditor</td>
+        </tr>
+        <tr>
+          <td>Participant 3</td>
+          <td>AUDITEE / Oxanna / BPLD / BPLD records coordinator</td>
+        </tr>
+        <tr>
+          <td>External name / email</td>
+          <td>
+            Blank for registered users; optional EXTERNAL branch uses Alex Demo
+            / alex@example.invalid
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Save schedule. Expected: conference exists with scheduled state, can be
+      reopened to add actual details. Auditee dropdown must show eligible
+      auditee users, audit-team dropdown eligible auditors.
+    </p>
+    <p>
+      <strong>ENTRY-02</strong> — Complete all briefing-paper fields before
+      finalizing notes.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Briefing field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Audit selection background</td>
+          <td>
+            Special request to test synthetic August permit controls after
+            survey identified incomplete sign-off.
+          </td>
+        </tr>
+        <tr>
+          <td>Audit authority</td>
+          <td>
+            DEMO-MO-2026-091 dated T-1; issued AEO code recorded in run sheet.
+          </td>
+        </tr>
+        <tr>
+          <td>Preliminary objectives</td>
+          <td>
+            OBJ-01 assessment accuracy; OBJ-02 receipt matching; OBJ-03
+            independent reconciliation review.
+          </td>
+        </tr>
+        <tr>
+          <td>Scope and exclusions</td>
+          <td>
+            BPLD August records; excludes Treasury-wide custody and unrelated
+            processes.
+          </td>
+        </tr>
+        <tr>
+          <td>Methodology</td>
+          <td>
+            12-item judgmental sample, walkthrough, recalculation, matching and
+            sign-off inspection.
+          </td>
+        </tr>
+        <tr>
+          <td>Audit criteria</td>
+          <td>BPLD-UAT-SOP-01 sections 1–3.</td>
+        </tr>
+        <tr>
+          <td>Planned timing</td>
+          <td>T..T+14 fieldwork; report planned by T+21.</td>
+        </tr>
+        <tr>
+          <td>Team members and roles</td>
+          <td>
+            Cherrybelle supervisor; Marissa team leader; Charry auditor;
+            Kristine reviewer.
+          </td>
+        </tr>
+        <tr>
+          <td>Previous audit matters</td>
+          <td>No prior findings imported into this synthetic run.</td>
+        </tr>
+        <tr>
+          <td>Engagement milestones</td>
+          <td>
+            Entry; evidence receipt; testing; AFR response; exit; report; CMS
+            handoff.
+          </td>
+        </tr>
+        <tr>
+          <td>Expected deliverables</td>
+          <td>
+            Approved papers, finalized fieldwork, supported AFR, final report
+            and two CMS recommendations.
+          </td>
+        </tr>
+        <tr>
+          <td>Initial information requirements</td>
+          <td>
+            Synthetic permit register, test SOP and reviewer-sign-off records.
+          </td>
+        </tr>
+        <tr>
+          <td>Auditee views</td>
+          <td>
+            Oxanna confirms BPLD will provide the synthetic register and explain
+            reconciliation responsibilities.
+          </td>
+        </tr>
+        <tr>
+          <td>Auditee expectations</td>
+          <td>
+            Clear requests, protected file access and opportunity to comment on
+            supported findings.
+          </td>
+        </tr>
+        <tr>
+          <td>Conference notes</td>
+          <td>
+            Team explained objectives and sample; Oxanna accepted records
+            coordination; no change to approved scope was requested.
+          </td>
+        </tr>
+        <tr>
+          <td>Material matters disposition</td>
+          <td>
+            Records-access matter resolved through CMS upload; no unresolved
+            material restriction.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <table>
+      <thead>
+        <tr>
+          <th>Matter / commitment field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Matter type / description</td>
+          <td>
+            Records access / Supply the August synthetic permit and
+            reconciliation register.
+          </td>
+        </tr>
+        <tr>
+          <td>Material matter</td>
+          <td>Checked</td>
+        </tr>
+        <tr>
+          <td>Disposition status / disposition</td>
+          <td>
+            RESOLVED / Oxanna demonstrated that the file can be uploaded through
+            CMS.
+          </td>
+        </tr>
+        <tr>
+          <td>Responsible person / office / due date</td>
+          <td>Oxanna / BPLD / T+2</td>
+        </tr>
+        <tr>
+          <td>Agreement / commitment</td>
+          <td>
+            BPLD will upload the requested synthetic records and retain the
+            request reference.
+          </td>
+        </tr>
+        <tr>
+          <td>Commitment person / office / due / status</td>
+          <td>
+            Oxanna / BPLD / T+2 / COMPLETED after upload, otherwise IN_PROGRESS
+          </td>
+        </tr>
+        <tr>
+          <td>CIAS commitment (optional second row)</td>
+          <td>
+            Charry / CIAS / T+3 / OPEN; “Validate receipt completeness and
+            notify BPLD of gaps.”
+          </td>
+        </tr>
+        <tr>
+          <td>Held at / actual attendance</td>
+          <td>Actual test meeting time; PRESENT for the three participants</td>
+        </tr>
+        <tr>
+          <td>Attendance notes / attended at</td>
+          <td>
+            Attended the complete synthetic briefing / actual meeting time
+          </td>
+        </tr>
+        <tr>
+          <td>Attachment / caption</td>
+          <td>
+            Optional criteria file or test minutes / Synthetic entry briefing
+            and attendance record
+          </td>
+        </tr>
+        <tr>
+          <td>Notes acknowledgement</td>
+          <td>
+            Reviewed the official entry notes; they accurately record the
+            synthetic briefing and BPLD commitments.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Use the available hold/complete actions in order, satisfying any
+      participant, notes, material-matter or attachment gates. Sign in as Oxanna
+      → CMS → Entry Conference Acknowledgements. Open the engagement, read notes
+      and acknowledge if offered. Refresh after completion: notes must remain
+      accessible for reference. Empty selector despite correct
+      office/permissions is a FAIL, not expected archival behavior.
+    </p>
+    <h2 id="section-15">15 · Start Fieldwork and activate the program</h2>
+    <p>
+      <strong>EXEC-01</strong> — Overview/Lifecycle → Start Fieldwork. Expected
+      FIELDWORK. If blocked, verify completed/waived Entry Conference, approved
+      current package with matching approved/current version, approved
+      AEP/program and current safeguards.
+    </p>
+    <p>
+      Then open Audit Program → select approved program → Start/Activate.
+      Expected program ACTIVE. Open Execution and Working Papers &amp; Audit
+      Evidence; all three procedures should now be available and
+      new-paper/upload actions enabled for permitted users.
+    </p>
+    <p>
+      Record both statuses in your run sheet. A planned Working Paper
+      requirement is not an actual Working Paper, and an approved program is not
+      yet an active program. If procedures remain absent after activation,
+      refresh selectors and capture the status/API error as a defect.
+    </p>
+    <h2 id="section-16">16 · Evidence request and Oxanna's CMS upload</h2>
+    <p>
+      <strong>EVD-01</strong> — Evidence Management → Evidence Requests → create
+      as auditor.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Request field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Title</td>
+          <td>August 2026 BPLD synthetic permit and reconciliation register</td>
+        </tr>
+        <tr>
+          <td>Purpose</td>
+          <td>
+            Obtain source records for PROC-01 through PROC-03 and reconcile
+            assessment, receipt and reviewer-sign-off attributes.
+          </td>
+        </tr>
+        <tr>
+          <td>Requested from office</td>
+          <td>BPLD</td>
+        </tr>
+        <tr>
+          <td>Requested from user</td>
+          <td>Oxanna S. Custodio</td>
+        </tr>
+        <tr>
+          <td>Due date</td>
+          <td>T+2</td>
+        </tr>
+        <tr>
+          <td>Requested items, one per line</td>
+          <td>
+            BPLD-UAT-permit-register.csv; BPLD-UAT-criteria-and-authority.txt;
+            confirmation of missing sign-offs for sample IDs 005, 025 and 045.
+          </td>
+        </tr>
+        <tr>
+          <td>Change reason</td>
+          <td>
+            Blank initially; returned update: “Clarified required sign-off
+            columns and sample IDs.”
+          </td>
+        </tr>
+        <tr>
+          <td>Submit / send comment</td>
+          <td>
+            Reviewed request scope; send to the BPLD coordinator through the
+            portal.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Create → Submit → use Send when available. Expected SENT. SUBMITTED alone
+      is not sufficient for the auditee delivery workflow.
+    </p>
+    <p>
+      <strong>EVD-02</strong> — Oxanna → CMS → Evidence Requests → select
+      request; acknowledge when available, then upload.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Auditee upload field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Title</td>
+          <td>BPLD August 2026 synthetic permit register</td>
+        </tr>
+        <tr>
+          <td>Source description</td>
+          <td>
+            Synthetic register supplied by Oxanna S. Custodio for
+            BPLD-UAT-20260908-A; 60 fictional transactions.
+          </td>
+        </tr>
+        <tr>
+          <td>Date obtained</td>
+          <td>T</td>
+        </tr>
+        <tr>
+          <td>Response note</td>
+          <td>
+            Providing the requested register. Sample IDs 005, 025 and 045 have
+            no recorded secondary reconciliation sign-off in this fixture.
+          </td>
+        </tr>
+        <tr>
+          <td>File</td>
+          <td>BPLD-UAT-permit-register.csv</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Upload the criteria text as a second response with title “BPLD synthetic
+      SOP and test authority”; source “Test criteria supporting sections 1–3”;
+      note “For demonstration only; not an actual government directive.”
+      Expected: response history shows Oxanna, timestamp and exact uploaded
+      file. Auditor sees response linked to the original request; upload is not
+      automatically professional acceptance of evidence.
+    </p>
+    <p>
+      <strong>EVD-03</strong> — Auditor: inspect each file; record receipt if
+      available.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Receipt field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Evidence / document version</td>
+          <td>Select the returned file and its actual version</td>
+        </tr>
+        <tr>
+          <td>Receipt notes</td>
+          <td>
+            File readable; row count 60; requested columns present; supplied
+            through CMS by BPLD.
+          </td>
+        </tr>
+        <tr>
+          <td>Receipt outcome / status</td>
+          <td>
+            COMPLETE if all requested items are present; PARTIAL if confirmation
+            is still missing
+          </td>
+        </tr>
+        <tr>
+          <td>Received form</td>
+          <td>DIGITAL</td>
+        </tr>
+        <tr>
+          <td>Acquisition method</td>
+          <td>REQUESTED</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Do not create a second copy of the same received file just to simulate
+      receipt. If the CMS upload does not expose planning links, retain its
+      request lineage and use the separately prepared auditor analysis file
+      below for precise risk/objective traceability.
+    </p>
+    <h2 id="section-17">
+      17 · Audit evidence metadata, assessment and Working Papers
+    </h2>
+    <p>
+      <strong>EVD-04</strong> — Upload
+      <code>BPLD-UAT-sample-results.csv</code> as auditor-prepared analysis. For
+      three distinct evidence families, use title suffix Assessment / Receipts /
+      Reconciliation and link OBJ/R/CTRL 01, 02 and 03 respectively. The same
+      fixture contains the documented analysis for all three tests; do not
+      misrepresent it as three independent sources.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Upload field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Title</td>
+          <td>
+            BPLD 12-item sample analysis — Assessment; repeat Receipts /
+            Reconciliation
+          </td>
+        </tr>
+        <tr>
+          <td>Evidence type</td>
+          <td>Documentary</td>
+        </tr>
+        <tr>
+          <td>Source type</td>
+          <td>Auditor Generated (AUDITOR_GENERATED)</td>
+        </tr>
+        <tr>
+          <td>Source description</td>
+          <td>
+            Recalculation and matching of the 12 defined synthetic samples
+            against the CMS-supplied register and test SOP.
+          </td>
+        </tr>
+        <tr>
+          <td>Date obtained</td>
+          <td>T</td>
+        </tr>
+        <tr>
+          <td>Confidentiality</td>
+          <td>Internal</td>
+        </tr>
+        <tr>
+          <td>Acquisition method / form</td>
+          <td>
+            OTHER / DIGITAL; source description explains auditor-prepared
+            recalculation
+          </td>
+        </tr>
+        <tr>
+          <td>Planning objective</td>
+          <td>Current OBJ-01 / OBJ-02 / OBJ-03</td>
+        </tr>
+        <tr>
+          <td>Risk matrix item</td>
+          <td>Current R-01 / R-02 / R-03</td>
+        </tr>
+        <tr>
+          <td>Control reference</td>
+          <td>CTRL-01 / CTRL-02 / CTRL-03</td>
+        </tr>
+        <tr>
+          <td>Custodian name / office</td>
+          <td>
+            Charry Bagongon / City Internal Audit Office for auditor analysis;
+            original supplied records retain Oxanna / BPLD
+          </td>
+        </tr>
+        <tr>
+          <td>Linked Working Papers</td>
+          <td>
+            Leave blank until papers exist; select corresponding paper if
+            already created
+          </td>
+        </tr>
+        <tr>
+          <td>File</td>
+          <td>BPLD-UAT-sample-results.csv</td>
+        </tr>
+        <tr>
+          <td>Change reason</td>
+          <td>
+            Blank initially; correction: “Corrected analysis description; source
+            fixture unchanged.”
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Verify files and record checksums. Assess each evidence version used for
+      findings/reporting, including relevant source evidence. The following
+      positive ratings are appropriate only after actually inspecting these
+      fixtures.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Assessment field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Evidence / request / document version</td>
+          <td>
+            Exact selected evidence; originating request if relevant; actual
+            Core version
+          </td>
+        </tr>
+        <tr>
+          <td>Sufficiency</td>
+          <td>YES — all 12 selected sample rows provided</td>
+        </tr>
+        <tr>
+          <td>Appropriateness</td>
+          <td>YES — records address the specific procedure</td>
+        </tr>
+        <tr>
+          <td>Relevance</td>
+          <td>YES — August BPLD permit controls</td>
+        </tr>
+        <tr>
+          <td>Reliability</td>
+          <td>YES — controlled synthetic fixture reconciles to analysis</td>
+        </tr>
+        <tr>
+          <td>Competence</td>
+          <td>
+            YES — supplied by identified custodian and examined by assigned
+            auditor
+          </td>
+        </tr>
+        <tr>
+          <td>Accuracy</td>
+          <td>YES — recomputation agrees to fixture arithmetic</td>
+        </tr>
+        <tr>
+          <td>Completeness</td>
+          <td>
+            YES — required sample attributes are present; blank reviewer fields
+            are test exceptions, not omitted columns
+          </td>
+        </tr>
+        <tr>
+          <td>Corroboration</td>
+          <td>YES — analysis agrees to register and criteria</td>
+        </tr>
+        <tr>
+          <td>Contradiction</td>
+          <td>
+            NO — no unresolved contradictory source; do not select YES simply
+            because other dimensions are YES
+          </td>
+        </tr>
+        <tr>
+          <td>Authenticity / integrity</td>
+          <td>YES / YES — exact test source and checksum checked</td>
+        </tr>
+        <tr>
+          <td>Confidentiality</td>
+          <td>INTERNAL</td>
+        </tr>
+        <tr>
+          <td>Restricted flag / access restrictions</td>
+          <td>Unchecked / blank for this fixture</td>
+        </tr>
+        <tr>
+          <td>Limitations</td>
+          <td>
+            Blank for this complete synthetic evidence set. The planned
+            judgmental-sample boundary is recorded in scope and Working Papers,
+            not treated as an unresolved evidence defect. If an actual evidence
+            limitation exists, record it and obtain the required exception
+            approval
+          </td>
+        </tr>
+        <tr>
+          <td>Evidence gaps</td>
+          <td>Blank after supplied files are complete</td>
+        </tr>
+        <tr>
+          <td>Exception required / reason</td>
+          <td>Unchecked / blank</td>
+        </tr>
+        <tr>
+          <td>Evidence outcome</td>
+          <td>ACCEPTED</td>
+        </tr>
+        <tr>
+          <td>Change reason for reassessment</td>
+          <td>
+            Resolved prior incomplete rating after comparing all source and
+            sample rows.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Expected: verified/locked evidence and eligible professional assessment.
+      “LOCKED” by itself does not mean accepted for reporting; LIMITED or
+      unresolved gaps should block reporting support. Any nonblank assessment
+      Limitations field triggers an exception requirement in the current
+      service, even a sentence such as “None”; leave it genuinely empty when
+      none exists. For an exception branch, document the real limitation, check
+      Exception required, state the proposed constrained use, and obtain
+      independent approval before relying on the evidence.
+    </p>
+    <p>
+      Finish the request workflow after assessing its linked submissions: Mark
+      received → Queue assessment → Complete assessment → Close request.
+      Expected CLOSED, complete response history retained. Do not close without
+      submission when Oxanna has actually provided files.
+    </p>
+    <p>
+      <strong>WP-01</strong> — Working Papers &amp; Audit Evidence → New Working
+      Paper. Create three papers, using the returned system codes as actual
+      references.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Paper field</th>
+          <th>WP-01 input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Procedure</td>
+          <td>PROC-01</td>
+        </tr>
+        <tr>
+          <td>Title</td>
+          <td>WP-01 — Assessment recalculation</td>
+        </tr>
+        <tr>
+          <td>Objective</td>
+          <td>Verify assessment accuracy for the 12 selected permits.</td>
+        </tr>
+        <tr>
+          <td>Procedure performed</td>
+          <td>
+            Recomputed PHP 1,000 + PHP 100 × transaction number and compared
+            every selected assessment with the register.
+          </td>
+        </tr>
+        <tr>
+          <td>Population description</td>
+          <td>60 synthetic August 2026 permit transactions.</td>
+        </tr>
+        <tr>
+          <td>Sample description</td>
+          <td>
+            IDs 005, 010, 015, 020, 025, 030, 035, 040, 045, 050, 055 and 060;
+            judgmental selection.
+          </td>
+        </tr>
+        <tr>
+          <td>Result</td>
+          <td>
+            12 of 12 assessment amounts agree; zero arithmetic exceptions in the
+            sample.
+          </td>
+        </tr>
+        <tr>
+          <td>Conclusion</td>
+          <td>
+            No assessment calculation exception identified in this sample; no
+            population-wide projection made.
+          </td>
+        </tr>
+        <tr>
+          <td>Evidence</td>
+          <td>
+            Select accepted source register/criteria and Assessment analysis
+            evidence
+          </td>
+        </tr>
+        <tr>
+          <td>No-evidence reason</td>
+          <td>Blank because evidence is linked</td>
+        </tr>
+        <tr>
+          <td>Cross-references</td>
+          <td>
+            OBJ-01; R-01; FLOW-01; PROC-01; actual evidence codes, one per line
+          </td>
+        </tr>
+        <tr>
+          <td>Change reason</td>
+          <td>
+            Blank initially; returned edit: “Added explicit sample IDs and
+            actual evidence references.”
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      For WP-02 select PROC-02, title “WP-02 — Receipt matching”, objective
+      “Verify complete matching receipt references”, procedure “Matched sample
+      receipt references and amounts to assessments”, result “12/12 unique
+      matching receipt references; zero amount differences”, conclusion “No
+      matching exception identified in the 12 samples”, corresponding Receipt
+      evidence and OBJ-02/R-02/FLOW-02/PROC-02 references.
+    </p>
+    <p>
+      For WP-03 select PROC-03, title “WP-03 — Reconciliation sign-off testing”,
+      objective “Verify independent reconciliation review”, procedure “Inspected
+      reviewer fields for each of the 12 reconciled samples”, result “3/12 lack
+      reviewer sign-off: IDs 005, 025 and 045; 9/12 have review. Sample
+      exception rate 25%. No monetary loss established”, conclusion “Independent
+      review is not consistently evidenced in this sample; investigate and
+      communicate the control weakness”, Reconciliation evidence and matching 03
+      references. All other population/sample fields remain the same.
+    </p>
+    <p>
+      Submit each paper, exercise one Return/Resubmit on WP-03, then have an
+      authorized independent reviewer approve. Confirm saved corrected version,
+      APPROVED status, exact evidence links and old version retained.
+    </p>
+    <h2 id="section-18">18 · Fieldwork Records and procedure completion</h2>
+    <p>
+      <strong>FW-01</strong> — Execution → choose procedure → New Fieldwork
+      Record. Repeat for each procedure using its corresponding approved paper
+      and evidence.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>
+            Input for PROC-03; use corresponding paper narrative for PROC-01/02
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Record type</td>
+          <td>TESTING</td>
+        </tr>
+        <tr>
+          <td>Execution status</td>
+          <td>IN_PROGRESS for draft test; later change to COMPLETED</td>
+        </tr>
+        <tr>
+          <td>Procedure / area / focus</td>
+          <td>PROC-03 / REVENUE / REV-REC</td>
+        </tr>
+        <tr>
+          <td>Performed on / location</td>
+          <td>T / BPLD synthetic test workspace</td>
+        </tr>
+        <tr>
+          <td>Objective</td>
+          <td>Verify independent reconciliation review for the 12 samples.</td>
+        </tr>
+        <tr>
+          <td>Procedure performed</td>
+          <td>
+            Inspected recorded reconciliation and secondary sign-off for all 12
+            sample IDs; compared exceptions with supplied register.
+          </td>
+        </tr>
+        <tr>
+          <td>Population / sample</td>
+          <td>60 August transactions / the 12 fixed IDs from section 17</td>
+        </tr>
+        <tr>
+          <td>Analysis</td>
+          <td>
+            Three missing sign-offs divided by twelve tested equals 25%; missing
+            review does not by itself establish cash loss.
+          </td>
+        </tr>
+        <tr>
+          <td>Result</td>
+          <td>
+            Reviewer sign-off absent for DEMO-PERMIT-005, 025 and 045; nine
+            other samples have sign-off.
+          </td>
+        </tr>
+        <tr>
+          <td>Conclusion</td>
+          <td>
+            Independent reconciliation review is not consistently documented;
+            develop a supported control finding.
+          </td>
+        </tr>
+        <tr>
+          <td>Participant name / role</td>
+          <td>Charry Bagongon / Assigned auditor</td>
+        </tr>
+        <tr>
+          <td>Participant user / office if displayed</td>
+          <td>Charry / CIAS</td>
+        </tr>
+        <tr>
+          <td>Working Papers</td>
+          <td>Exact approved WP-03 version</td>
+        </tr>
+        <tr>
+          <td>Evidence</td>
+          <td>
+            Accepted source and corresponding verified/locked Reconciliation
+            analysis
+          </td>
+        </tr>
+        <tr>
+          <td>Related records</td>
+          <td>PROC-03; OBJ-03; R-03; actual WP/evidence codes, one per line</td>
+        </tr>
+        <tr>
+          <td>Task / assignee / due</td>
+          <td>Complete reconciliation test / Charry Bagongon / T+14</td>
+        </tr>
+        <tr>
+          <td>Change reason on edit</td>
+          <td>
+            Completed all 12 reconciliation tests and confirmed source links.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      For PROC-01/02 use REV-ASS/REV-COLL, corresponding actual approved paper
+      and analysis; carry the zero-exception results/conclusions from section
+      17. Task titles are “Complete assessment test” and “Complete receipt
+      matching”; deadlines T+7 and T+10.
+    </p>
+    <p>
+      <strong>FW-02 negative:</strong> Submit the IN_PROGRESS draft. Expected
+      rejection: execution must be completed. <strong>Recovery:</strong> Edit
+      draft → Execution status COMPLETED → Save new version → Submit. All
+      participants, papers and evidence must remain linked. Record review as
+      eligible independent reviewer, then Finalize as eligible finalizer.
+      Approved linked papers and verified/locked evidence are required for
+      finalization.
+    </p>
+    <p>
+      <strong>FW-03 separate program progress:</strong> Finalizing records sets
+      <code>fieldwork_status</code> to COMPLETED. The program procedure's
+      <code>status</code> is a separate value. Open Audit Procedure Details →
+      procedure progress; set status COMPLETED after its finalized record
+      exists. Supply actual Working Paper reference, the same
+      results/conclusion, review state FINALIZED where offered, related
+      references and comment “Finalized fieldwork and approved support
+      verified.” Leave waiver reason blank. Record procedure review with an
+      available accepted/satisfactory result and comments “Execution and support
+      reviewed.” Verify all three procedure statuses are COMPLETED. Do not
+      merely read the fieldwork badge.
+    </p>
+    <p>
+      Complete the active program when its completion checks pass. Lifecycle →
+      End Fieldwork / Start Findings Communication. Expected
+      FINDINGS_COMMUNICATION only after all procedures are completed/waived and
+      papers are in terminal review states. Keep every intentional exception
+      supported; do not waive the problematic procedure to bypass this test.
+    </p>
+    <h2 id="section-19">19 · Issue, AFR finding and recommendations</h2>
+    <p>
+      <strong>ISS-01</strong> — Create issue from PROC-03 fieldwork or Audit
+      Issues. Exact Working Paper/evidence support must carry forward.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Issue field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Title</td>
+          <td>
+            Missing independent reconciliation sign-off in three sampled permit
+            records
+          </td>
+        </tr>
+        <tr>
+          <td>Exception statement</td>
+          <td>
+            Three of twelve sampled August synthetic permit records, IDs 005,
+            025 and 045, have no secondary reconciliation reviewer recorded.
+            Nine have sign-off. The review requirement is in synthetic SOP
+            section 3.
+          </td>
+        </tr>
+        <tr>
+          <td>Responsible office / risk rating</td>
+          <td>BPLD / High, using configured risk label</td>
+        </tr>
+        <tr>
+          <td>Working Paper versions</td>
+          <td>Exact approved WP-03 version</td>
+        </tr>
+        <tr>
+          <td>Evidence versions</td>
+          <td>
+            Accepted Reconciliation analysis, source register and test SOP
+          </td>
+        </tr>
+        <tr>
+          <td>Submit / review comment</td>
+          <td>
+            Sample exceptions and source support are ready for independent
+            validation.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Submit → validate using an eligible reviewer → convert to finding once.
+      Expected issue CONVERTED_TO_FINDING. A second conversion must not create
+      another finding. Use a separate optional issue for dismissal testing, with
+      reason “Corroborating source resolved the suspected duplicate; no
+      exception remains.”
+    </p>
+    <p>
+      <strong>AFR-01</strong> — Open the converted finding and complete all
+      content before communication.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Finding field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Title</td>
+          <td>Independent reconciliation review not consistently documented</td>
+        </tr>
+        <tr>
+          <td>Criteria</td>
+          <td>
+            Synthetic SOP BPLD-UAT-SOP-01 section 3 requires a named independent
+            reviewer to sign each reconciliation before archival.
+          </td>
+        </tr>
+        <tr>
+          <td>Condition</td>
+          <td>
+            3 of 12 sampled records (005, 025 and 045) lack reviewer sign-off;
+            the remaining 9 have a reviewer.
+          </td>
+        </tr>
+        <tr>
+          <td>Cause</td>
+          <td>
+            Synthetic walkthrough indicates no mandatory reviewer field or
+            exception follow-up checklist at archival.
+          </td>
+        </tr>
+        <tr>
+          <td>Effect</td>
+          <td>
+            Incomplete review evidence increases the risk of undetected
+            reconciliation errors. Testing does not establish an actual monetary
+            loss.
+          </td>
+        </tr>
+        <tr>
+          <td>Conclusion</td>
+          <td>
+            BPLD's synthetic control trail does not consistently demonstrate
+            independent reconciliation review for the tested sample.
+          </td>
+        </tr>
+        <tr>
+          <td>Significance classification</td>
+          <td>
+            Use the supported significant/high control-weakness option; if free
+            text: Significant control weakness
+          </td>
+        </tr>
+        <tr>
+          <td>Effect classification</td>
+          <td>
+            Use supported nonfinancial/control option; if free text: Control
+            assurance
+          </td>
+        </tr>
+        <tr>
+          <td>Risk / responsible office</td>
+          <td>High / BPLD</td>
+        </tr>
+        <tr>
+          <td>No-recommendation reason</td>
+          <td>Blank; two recommendations will be included</td>
+        </tr>
+        <tr>
+          <td>Direct creation authority reason/reference</td>
+          <td>
+            Blank; finding is converted from an issue, not directly created
+          </td>
+        </tr>
+        <tr>
+          <td>Source issue / procedures</td>
+          <td>Converted issue / PROC-03</td>
+        </tr>
+        <tr>
+          <td>Fieldwork record / version</td>
+          <td>Actual finalized PROC-03 record and exact version</td>
+        </tr>
+        <tr>
+          <td>Working Paper / evidence versions</td>
+          <td>Approved WP-03 and accepted reporting support</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>REC-01</strong> — Add two recommendations before finalization.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Recommendation field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Recommendation 1 text</td>
+          <td>
+            Introduce a mandatory independent reviewer sign-off checklist for
+            each BPLD reconciliation and retain named reviewer evidence before
+            archival.
+          </td>
+        </tr>
+        <tr>
+          <td>Responsible office / target</td>
+          <td>BPLD / T+30</td>
+        </tr>
+        <tr>
+          <td>Recommendation 2 text</td>
+          <td>
+            Review the three sampled missing-sign-off records, document the
+            review outcome, and perform a monthly completeness check of
+            reconciliation sign-offs.
+          </td>
+        </tr>
+        <tr>
+          <td>Responsible office / target</td>
+          <td>BPLD / T+45</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Submit and validate the finding as permitted. Expected: complete
+      criteria-condition-cause-effect-conclusion, eligible support and two saved
+      recommendations. Download/view any generated AFR and verify evidence
+      references and target dates.
+    </p>
+    <h2 id="section-20">
+      20 · Communicate AFR, management response and rejoinder
+    </h2>
+    <p>
+      <strong>DIALOGUE-01</strong> — Communicate current finding / create
+      transmittal using available workflow actions. Communication permission
+      alone must not bypass validation.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Communication field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Recipients</td>
+          <td>
+            Oxanna S. Custodio / BPLD, selecting supported recipient control
+          </td>
+        </tr>
+        <tr>
+          <td>Due date</td>
+          <td>T+5</td>
+        </tr>
+        <tr>
+          <td>Confidentiality</td>
+          <td>INTERNAL</td>
+        </tr>
+        <tr>
+          <td>Transmittal method / reference</td>
+          <td>PORTAL / DEMO-AFR-TX-01</td>
+        </tr>
+        <tr>
+          <td>Comment</td>
+          <td>
+            Request factual confirmation and corrective action for the three
+            documented sign-off exceptions.
+          </td>
+        </tr>
+        <tr>
+          <td>Delivery / acknowledgement comment</td>
+          <td>AFR received for BPLD review and response coordination.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>DIALOGUE-02</strong> — Use Oxanna's permitted response workspace
+      or issued-record deep link. CMS currently exposes AEO, Entry Conference
+      and Evidence Request recipient pages; do not assume a general CMS AFR page
+      exists. If Oxanna has no reachable authorized management-response route,
+      mark this step BLOCKED and record the missing navigation/permission rather
+      than writing an auditor response under her name.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Response field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Agreement position</td>
+          <td>AGREE, using matching configured label</td>
+        </tr>
+        <tr>
+          <td>Response kind</td>
+          <td>ORIGINAL</td>
+        </tr>
+        <tr>
+          <td>Management comment</td>
+          <td>
+            BPLD agrees that the synthetic records 005, 025 and 045 lack
+            recorded secondary sign-off. This does not establish a monetary
+            loss.
+          </td>
+        </tr>
+        <tr>
+          <td>Proposed action</td>
+          <td>
+            Introduce the reviewer checklist, review the three items and perform
+            monthly sign-off completeness checks.
+          </td>
+        </tr>
+        <tr>
+          <td>Responsible user</td>
+          <td>Oxanna S. Custodio</td>
+        </tr>
+        <tr>
+          <td>Proposed target date</td>
+          <td>
+            T+30; keep recommendation 2's T+45 date explicitly in response
+            narrative
+          </td>
+        </tr>
+        <tr>
+          <td>Supplemental reason</td>
+          <td>
+            Blank for initial response; branch: Additional clarification on the
+            monthly monitoring schedule.
+          </td>
+        </tr>
+        <tr>
+          <td>Attachment / caption</td>
+          <td>
+            BPLD-UAT-management-response.txt / Synthetic BPLD corrective action
+            commitments
+          </td>
+        </tr>
+        <tr>
+          <td>Submission comment</td>
+          <td>
+            Submitted for auditor disposition with agreed actions and target
+            dates.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Submit as response author. Auditor Start Review; optional Request
+      Clarification comment “Confirm who performs monthly completeness review”
+      then record a versioned supplemental reply. Extension branch uses
+      requested new due date T+7, justification “Additional time to obtain
+      reviewer confirmation”, and an explicit authorized approve/reject
+      decision. Do not extend silently.
+    </p>
+    <p><strong>DIALOGUE-03</strong> — Auditor rejoinder.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Rejoinder field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Disposition</td>
+          <td>ACCEPT</td>
+        </tr>
+        <tr>
+          <td>Rejoinder</td>
+          <td>
+            The response acknowledges the supported condition and proposes
+            specific actions. Retain both recommendations; implementation will
+            be monitored in CMS after report issuance.
+          </td>
+        </tr>
+        <tr>
+          <td>Attachment / caption</td>
+          <td>
+            Optional sample-results file / Analysis supporting the accepted
+            factual condition
+          </td>
+        </tr>
+        <tr>
+          <td>Finalization comment</td>
+          <td>
+            Dialogue completed; condition and corrective commitments are
+            documented without implying implementation.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Finalize dialogue using an authorized actor, then finalize the finding
+      when allowed. Expected current finding FINALIZED and issue converted.
+      Agreement on a recommendation does not mean implemented. Lifecycle → Start
+      Exit Conference must remain locked until every issue and current finding
+      meets the gate.
+    </p>
+    <h2 id="section-21">
+      21 · Exit Conference: schedule first, actual details later
+    </h2>
+    <p>
+      <strong>EXIT-01</strong> — Lifecycle → Start Exit Conference → Conference
+      Management → Exit → Schedule.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Scheduling field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Start / end</td>
+          <td>T at next actual test session / +60 minutes</td>
+        </tr>
+        <tr>
+          <td>Venue</td>
+          <td>BPLD meeting room — synthetic exit session</td>
+        </tr>
+        <tr>
+          <td>Meeting link / online details</td>
+          <td>Blank for in-person</td>
+        </tr>
+        <tr>
+          <td>Agenda</td>
+          <td>
+            Present supported finding; discuss accepted response; confirm two
+            recommendations and targets; explain CMS monitoring.
+          </td>
+        </tr>
+        <tr>
+          <td>Finding IDs</td>
+          <td>Select the finalized reconciliation finding</td>
+        </tr>
+        <tr>
+          <td>Participants</td>
+          <td>
+            Marissa / CIAS / Team Leader; Charry / CIAS / Auditor; Oxanna / BPLD
+            / Auditee representative
+          </td>
+        </tr>
+        <tr>
+          <td>External name / email</td>
+          <td>Blank for registered users</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Expected: SCHEDULED, no requirement to invent minutes at scheduling.
+      Reopen and complete actual details after the simulated meeting.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Completion field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Discussion summary</td>
+          <td>
+            Participants confirmed the 3/12 sign-off exception and the
+            distinction between control risk and established financial loss.
+          </td>
+        </tr>
+        <tr>
+          <td>Minutes</td>
+          <td>
+            Presented criteria and sample results; reviewed BPLD response;
+            confirmed checklist target T+30 and retrospective/monthly check
+            target T+45; explained CMS follow-up.
+          </td>
+        </tr>
+        <tr>
+          <td>Agreements</td>
+          <td>
+            Retain both recommendations and BPLD ownership; monitor in CMS after
+            final report issuance.
+          </td>
+        </tr>
+        <tr>
+          <td>Disagreements</td>
+          <td>None for this synthetic acceptance path.</td>
+        </tr>
+        <tr>
+          <td>Participant attendance status / notes</td>
+          <td>
+            PRESENT for each / Attended discussion and confirmed assigned
+            responsibilities.
+          </td>
+        </tr>
+        <tr>
+          <td>Finding discussion status</td>
+          <td>Select DISCUSSED / corresponding offered option</td>
+        </tr>
+        <tr>
+          <td>Finding agreement status</td>
+          <td>Select AGREED / corresponding offered option</td>
+        </tr>
+        <tr>
+          <td>Discussion notes</td>
+          <td>Condition and response were reviewed against source evidence.</td>
+        </tr>
+        <tr>
+          <td>Agreement details</td>
+          <td>Two recommendations retained with existing target dates.</td>
+        </tr>
+        <tr>
+          <td>Disagreement details</td>
+          <td>Blank</td>
+        </tr>
+        <tr>
+          <td>Revised target date</td>
+          <td>
+            Blank because no target changes; branch uses T+45 with documented
+            justification
+          </td>
+        </tr>
+        <tr>
+          <td>Attachment category / caption</td>
+          <td>
+            Minutes category offered by form / Synthetic exit meeting record
+          </td>
+        </tr>
+        <tr>
+          <td>Attachment file</td>
+          <td>
+            Optional test minutes fixture, never an unsigned file represented as
+            signed
+          </td>
+        </tr>
+        <tr>
+          <td>Acknowledgement status / comment</td>
+          <td>
+            Acknowledged option / Confirmed that these minutes reflect the
+            synthetic exit discussion.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Complete. Expected COMPLETED and exact finding links retained. If a
+      separate acknowledgement is available, record it using the eligible
+      recipient path; do not assume CMS Entry Conference page also handles
+      exits. Lifecycle → Start Reporting should now pass, including any
+      configured progress-assessment gate.
+    </p>
+    <h2 id="section-22">22 · Draft report and independent quality review</h2>
+    <p>
+      <strong>REPORT-01</strong> — Audit Reporting Workspace → Draft Report →
+      create from finalized finding. An interim report is an optional branch,
+      not needed for this run's normal path.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Report field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Title</td>
+          <td>
+            Draft report — BPLD August 2026 permit control review —
+            BPLD-UAT-20260908-A
+          </td>
+        </tr>
+        <tr>
+          <td>Executive summary</td>
+          <td>
+            Testing of 12 synthetic permit records found no assessment or
+            receipt-matching exception, but 3 records lacked secondary
+            reconciliation sign-off. Two recommendations address review
+            documentation and follow-up. No monetary loss was established.
+          </td>
+        </tr>
+        <tr>
+          <td>Confidentiality</td>
+          <td>Internal</td>
+        </tr>
+        <tr>
+          <td>Findings</td>
+          <td>The finalized reconciliation finding</td>
+        </tr>
+        <tr>
+          <td>Issues</td>
+          <td>Converted source issue if link control is offered</td>
+        </tr>
+        <tr>
+          <td>Working Paper versions</td>
+          <td>Exact approved WP-01, WP-02 and WP-03 versions</td>
+        </tr>
+        <tr>
+          <td>Evidence</td>
+          <td>Current accepted supporting source/analysis versions</td>
+        </tr>
+        <tr>
+          <td>Source interim report version</td>
+          <td>Blank; no interim report in normal path</td>
+        </tr>
+        <tr>
+          <td>Interim treatment / source treatments</td>
+          <td>
+            Blank if no interim source; optional interim branch uses
+            RETAINED_WITH_REVIEW with a stated source-review reason
+          </td>
+        </tr>
+        <tr>
+          <td>Source link reason</td>
+          <td>
+            Selected records support sample scope, results and the retained
+            reconciliation finding.
+          </td>
+        </tr>
+        <tr>
+          <td>Approving authority</td>
+          <td>
+            Blank for draft unless required by the form; final uses section 23
+          </td>
+        </tr>
+        <tr>
+          <td>Recipients</td>
+          <td>Draft may remain blank unless required; final uses section 23</td>
+        </tr>
+        <tr>
+          <td>Change reason</td>
+          <td>
+            Initial draft blank; revision: “Clarified sample limitation and
+            separated risk from monetary loss.”
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Create these report sections in this order.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Section title</th>
+          <th>Section content</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Background and authority</td>
+          <td>
+            DEMO-MO-2026-091 authorized this synthetic BPLD control test; actual
+            engagement and AEO codes appear in the record lineage.
+          </td>
+        </tr>
+        <tr>
+          <td>Objectives and scope</td>
+          <td>
+            Assessment accuracy, receipt matching and independent reconciliation
+            review for August 2026 BPLD records; 60 transactions and 12
+            judgmental samples.
+          </td>
+        </tr>
+        <tr>
+          <td>Methodology and limitations</td>
+          <td>
+            Recalculation, matching, inspection and inquiry; synthetic SOP
+            sections 1–3. Results apply to selected samples and are not
+            statistically projected.
+          </td>
+        </tr>
+        <tr>
+          <td>Results</td>
+          <td>
+            Assessment and receipt testing: 12/12 pass. Reconciliation review:
+            9/12 pass, 3/12 missing sign-off (005, 025, 045). No quantified
+            monetary loss established.
+          </td>
+        </tr>
+        <tr>
+          <td>Management response and recommendations</td>
+          <td>
+            BPLD agreed to a sign-off checklist by T+30 and review/monthly
+            monitoring by T+45; retain both recommendations for CMS follow-up.
+          </td>
+        </tr>
+        <tr>
+          <td>Overall conclusion</td>
+          <td>
+            The sample demonstrates a documentation weakness in independent
+            reconciliation review; improvements are needed to provide consistent
+            assurance.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Quality checklist: check “Only eligible findings are included”, “Evidence
+      and traceability reviewed”, “Confidentiality and recipients verified” and
+      “Quality review completed” only after carrying out the checks. Preserve
+      the generated codes/labels.
+    </p>
+    <p>
+      Save → Submit → authorized Review. Exercise Return with comment
+      “Explicitly state that no monetary loss was established”; revise the
+      summary and resubmit. Approve the draft if offered/required before
+      creating final. Confirm old draft version and review history remain
+      visible.
+    </p>
+    <h2 id="section-23">
+      23 · Final report, authority, issuance and distribution
+    </h2>
+    <p>
+      <strong>REPORT-02</strong> — Create Final from the reviewed draft. Retain
+      section content and exact sources, change title to “Final report — BPLD
+      August 2026 permit control review — BPLD-UAT-20260908-A”. Select finalized
+      findings only.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Final-only / authority field</th>
+          <th>Input</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Approving authority</td>
+          <td>
+            Cherrybelle A. Lao, CIAS Management — authorized test approver
+          </td>
+        </tr>
+        <tr>
+          <td>Recipient 1 type / user / delivery</td>
+          <td>USER / Oxanna S. Custodio / SYSTEM</td>
+        </tr>
+        <tr>
+          <td>Recipient 2 type / office / delivery</td>
+          <td>
+            OFFICE / BPLD / SYSTEM, if supported without duplicating the same
+            recipient
+          </td>
+        </tr>
+        <tr>
+          <td>External name / email</td>
+          <td>Blank for internal recipients</td>
+        </tr>
+        <tr>
+          <td>Final change reason</td>
+          <td>
+            Incorporated independent review and confirmed BPLD commitments for
+            issuance.
+          </td>
+        </tr>
+        <tr>
+          <td>Submit / review / approval comment</td>
+          <td>
+            Final text, source versions, recommendations, targets and recipients
+            checked for controlled issuance.
+          </td>
+        </tr>
+        <tr>
+          <td>Issuance date</td>
+          <td>Actual T on which issuance is performed</td>
+        </tr>
+        <tr>
+          <td>Authority role / decision</td>
+          <td>
+            IAU_HEAD_RECOMMENDATION / RECOMMEND; separately LCE_APPROVAL /
+            APPROVE with actual authorized test actors. Inspect any decisions
+            automatically created by the workflow before adding another
+          </td>
+        </tr>
+        <tr>
+          <td>Authority comment / decision reference</td>
+          <td>
+            Final version reviewed for BPLD distribution / DEMO-FINAL-AUTH-01
+          </td>
+        </tr>
+        <tr>
+          <td>Signatory user / role</td>
+          <td>
+            Actual authorized signer / IAU_HEAD, LCE, PRESIDING_OFFICER or
+            REPORT_ISSUER as applicable; these are document responsibilities
+          </td>
+        </tr>
+        <tr>
+          <td>Signatory name / signed at</td>
+          <td>Blank when a user is selected / actual test signature time</td>
+        </tr>
+        <tr>
+          <td>Signature method</td>
+          <td>
+            CONTROLLED_WORKFLOW for recorded in-app action; never imply a real
+            wet/digital signature
+          </td>
+        </tr>
+        <tr>
+          <td>Signature reference</td>
+          <td>DEMO-FINAL-SIGN-01</td>
+        </tr>
+        <tr>
+          <td>Transmittal reference / method</td>
+          <td>DEMO-FINAL-TX-01 / CONTROLLED_SYSTEM</td>
+        </tr>
+        <tr>
+          <td>Transmittal delivery status / sent at / note</td>
+          <td>
+            SENT after actual portal issuance / actual time / Synthetic final
+            report distributed through controlled portal.
+          </td>
+        </tr>
+        <tr>
+          <td>Distribution decision / note</td>
+          <td>
+            Record delivery when actually visible in portal; acknowledgement
+            only by eligible recipient. Note: Final report made available to
+            BPLD through the test portal.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Submit → independent review of content → Approve → Issue according to
+      allowed actions, satisfying any authority/signatory/distribution readiness
+      shown. The report transition API has SUBMIT, RETURN, APPROVE and ISSUE;
+      independent review is performed through its available review/approval
+      controls, not an invented REVIEW transition. Then verify aggregate ISSUED;
+      use Issue Final Report lifecycle action if still required. The final
+      report must be issued before recommendation transfer. Record actual actors
+      attached to authority decisions and signatories: automatically populated
+      authority labels must not be mistaken for a real mayoral signature.
+    </p>
+    <p>
+      Download the final PDF and verify title, scope, sample numbers (60,12,3),
+      named office, two recommendations, target dates and version. Check
+      checksum and actor/time history. Attempts to edit issued text must fail; a
+      formal successor/correction must preserve the issued original.
+    </p>
+    <p>
+      Optional interim branch: create interim report with the same sources and
+      label its limited purpose; independently review it. If carried forward,
+      select its exact version and record RETAINED_WITH_REVIEW or REVISED plus
+      reason. Do not add an interim report mid-run merely to satisfy a blank
+      optional selector.
+    </p>
+    <h2 id="section-24">
+      24 · CMS transfer, reconciliation and handoff acceptance
+    </h2>
+    <p>
+      <strong>TRANSFER-01</strong> — Issuance already attempts recommendation
+      transfer in the current implementation. Inspect the transfer result and
+      both recommendation codes first. On the issued final report use
+      Transfer/Retry transfer to CMS to reconcile or recover it. Refresh before
+      retrying; retry is not a second independent handoff.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Handoff field / observation</th>
+          <th>Expected value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Source engagement</td>
+          <td>Actual new BPLD-UAT engagement, not AEMS-2026-001</td>
+        </tr>
+        <tr>
+          <td>Source report</td>
+          <td>Issued final report, exact immutable version</td>
+        </tr>
+        <tr>
+          <td>Expected recommendations</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td>Expected CMS cases</td>
+          <td>2, one for each recommendation</td>
+        </tr>
+        <tr>
+          <td>Responsible office</td>
+          <td>BPLD for both</td>
+        </tr>
+        <tr>
+          <td>Recommendation text</td>
+          <td>
+            Exact checklist recommendation and retrospective/monthly review
+            recommendation
+          </td>
+        </tr>
+        <tr>
+          <td>Target dates</td>
+          <td>T+30 and T+45</td>
+        </tr>
+        <tr>
+          <td>Source finding</td>
+          <td>Finalized reconciliation finding</td>
+        </tr>
+        <tr>
+          <td>Transfer result / identifier</td>
+          <td>Capture actual keys and timestamps; do not manufacture IDs</td>
+        </tr>
+        <tr>
+          <td>Repeat transfer</td>
+          <td>Same cases reused; total remains 2 for this run</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>TRANSFER-02</strong> — Engagement → Completion &amp; Transfer →
+      Reconcile. Inspect manifest and resource-effort snapshot.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Reconciliation control</th>
+          <th>Input / check</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Reconcile</td>
+          <td>
+            Run against the issued source and capture generated
+            manifest/snapshot versions
+          </td>
+        </tr>
+        <tr>
+          <td>Transfer manifest</td>
+          <td>
+            Two eligible recommendations transferred, no unexplained exclusions
+            or duplicates; exact report document version and checksum
+          </td>
+        </tr>
+        <tr>
+          <td>Resource effort</td>
+          <td>
+            Planned 26 days; inspect actual approved ARMIS effort. Do not enter
+            fictional actual effort as if it happened
+          </td>
+        </tr>
+        <tr>
+          <td>Variance explanation if actual differs</td>
+          <td>
+            Synthetic run completed in compressed time; retain actual recorded
+            provider values and explain difference from planned 26 days.
+          </td>
+        </tr>
+        <tr>
+          <td>Open exceptions</td>
+          <td>
+            Resolve underlying source/transfer/provider issues, then reconcile
+            again; capture anything unresolved as BLOCKED
+          </td>
+        </tr>
+        <tr>
+          <td>Independent approval comment</td>
+          <td>
+            Issued report lineage and both BPLD CMS cases reconciled; source
+            counts and exceptions reviewed.
+          </td>
+        </tr>
+        <tr>
+          <td>Repeat reconcile</td>
+          <td>Stable transfer keys; no duplicate case generation</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>CMS-01</strong> — Sign in as Oxanna → CMS → Recommendation
+      Registry. Find both cases, open each and verify exact wording, BPLD
+      ownership, target, issued-report lineage and visible permitted actions.
+      Open as an unrelated-office user and expect access denied or hidden
+      records. A same-office representative may see office-addressed material;
+      user-specific recipient restrictions must still follow actual delivery
+      policy.
+    </p>
+    <p>
+      If a compliance monitor must be assigned, use an authorized CMS manager to
+      assign an eligible monitor (for example Marissa, if granted CMS monitoring
+      permission and not barred by independence rules). The auditee must not
+      independently validate implementation or close their own case solely
+      because they can submit evidence.
+    </p>
+    <p>
+      <strong>Handoff endpoint:</strong> this guide's main journey passes only
+      when both CMS records exist, remain deduplicated on retry, retain exact
+      AEMS source links and are visible to the appropriate BPLD recipient. CMS
+      action planning and implementation monitoring continue under the CMS
+      workflow; transfer does not equal implemented or closed.
+    </p>
+    <h2 id="section-25">
+      25 · Optional completion/closure and exception branches
+    </h2>
+    <p>
+      After CMS handoff, inspect Completion Assessment and formal Closure
+      without claiming that transfer automatically closes the engagement.
+      Complete the assessment's checklist from actual evidence, resolve open
+      exceptions, obtain independent approval, then follow the formal closure
+      route if included in your test scope.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Optional branch / fields</th>
+          <th>Synthetic input / expected result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Completion assessment narrative</td>
+          <td>
+            All three procedures completed, approved papers and finalized
+            fieldwork linked; two recommendations transferred. Record any
+            unresolved provider exception honestly
+          </td>
+        </tr>
+        <tr>
+          <td>Completion assessment evidence</td>
+          <td>
+            Actual issued report version, transfer manifest, current effort
+            snapshot and final work index
+          </td>
+        </tr>
+        <tr>
+          <td>Formal closure reason</td>
+          <td>
+            Authorized test closure after required completion gates are
+            satisfied
+          </td>
+        </tr>
+        <tr>
+          <td>Final index / retention reference</td>
+          <td>
+            BPLD-UAT-FINAL-INDEX-01; use the actual configured retention class
+            and custody office, never invent an official retention period
+          </td>
+        </tr>
+        <tr>
+          <td>Closure checklist</td>
+          <td>
+            Mark items only after actual review; independent review and approval
+            must be recorded
+          </td>
+        </tr>
+        <tr>
+          <td>Suspension</td>
+          <td>
+            Reason: Test interruption for records availability; authority
+            DEMO-SUSP-01; effective T; review T+2; resume requirements: Files
+            supplied and access verified
+          </td>
+        </tr>
+        <tr>
+          <td>Resume</td>
+          <td>
+            Reason: Required test records are now available; return only to
+            recorded prior stage
+          </td>
+        </tr>
+        <tr>
+          <td>Cancellation</td>
+          <td>
+            Reason: Duplicate synthetic run; authority DEMO-CANCEL-01; effect on
+            IAP: None, special test; disposition: Preserve evidence/history,
+            discontinue draft work
+          </td>
+        </tr>
+        <tr>
+          <td>Formal revision</td>
+          <td>
+            Reason: Corrected narrative or traceability; prior approved/issued
+            version remains immutable
+          </td>
+        </tr>
+        <tr>
+          <td>Waiver of conference</td>
+          <td>
+            Separate branch only; reason: Authorized simulation branch;
+            authority and support as required. Do not use waiver to hide
+            incomplete normal-path testing
+          </td>
+        </tr>
+        <tr>
+          <td>Reopening</td>
+          <td>
+            Separate authorized scenario; select actual closure and authority
+            document version, state correction need and retain original closure
+            history
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      The optional branches are independent test cases. Execute potentially
+      disruptive branches on a duplicate fresh test engagement, not the
+      successfully transferred main run.
+    </p>
+    <h2 id="section-26">
+      26 · Negative, persistence and access regression matrix
+    </h2>
+    <p>
+      Record actual messages and whether any partial data was written. Expected
+      rejection must preserve prior saved versions.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Test ID / action</th>
+          <th>Expected result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>NEG-01 Create without special authority/date</td>
+          <td>Validation blocks creation; no partial engagement</td>
+        </tr>
+        <tr>
+          <td>NEG-02 Select two offices</td>
+          <td>Rejected; engagement remains single BPLD office</td>
+        </tr>
+        <tr>
+          <td>NEG-03 Select another area's focus</td>
+          <td>Rejected or absent from selector</td>
+        </tr>
+        <tr>
+          <td>NEG-04 Team work while DRAFT</td>
+          <td>Locked until Prepare Authorization</td>
+        </tr>
+        <tr>
+          <td>NEG-05 Missing/stale safeguards</td>
+          <td>Authorization/fieldwork blocked with actionable reason</td>
+        </tr>
+        <tr>
+          <td>NEG-06 Self-review without explicit permission</td>
+          <td>Rejected even for copied role name or management title</td>
+        </tr>
+        <tr>
+          <td>NEG-07 Clone role with same permitted actions</td>
+          <td>
+            Scoped allowed actions work without relying on original role code;
+            team/office constraints remain
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-08 Plan draft without program</td>
+          <td>
+            Draft creation succeeds in permitted planning stage; approval still
+            blocked until complete
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-09 Save matrix text</td>
+          <td>
+            Methodology, appetite and conclusion persist in each matrix after
+            refresh
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-10 Add risk without objective/procedure/paper</td>
+          <td>
+            Readiness fails; cannot approve/start fieldwork with incomplete
+            links
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-11 Approved program not activated</td>
+          <td>
+            Execution unavailable/empty; activation restores eligible procedures
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-12 Evidence obtained tomorrow</td>
+          <td>Validation rejects future obtained date</td>
+        </tr>
+        <tr>
+          <td>NEG-13 Request SUBMITTED but not SENT</td>
+          <td>
+            Oxanna should not be treated as having received a sent request
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-14 Unrelated-office request upload</td>
+          <td>Hidden or denied; no foreign response or evidence created</td>
+        </tr>
+        <tr>
+          <td>NEG-15 Unsupported/oversize file</td>
+          <td>Clear rejection, no orphan visible response</td>
+        </tr>
+        <tr>
+          <td>NEG-16 Reopen completed entry notes</td>
+          <td>BPLD can read authorized historical notes</td>
+        </tr>
+        <tr>
+          <td>NEG-17 IN_PROGRESS fieldwork submit</td>
+          <td>
+            Rejected; COMPLETED saved execution version can submit when other
+            requirements pass
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-18 Finalize with unapproved paper</td>
+          <td>Rejected until linked paper approved</td>
+        </tr>
+        <tr>
+          <td>NEG-19 Complete procedure before finalized fieldwork</td>
+          <td>
+            Rejected; separate procedure progress completion required afterwards
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-20 LOCKED evidence with unresolved assessment</td>
+          <td>Not eligible for reporting merely because locked</td>
+        </tr>
+        <tr>
+          <td>NEG-21 Contradiction YES</td>
+          <td>
+            Unresolved contradiction blocks positive reporting eligibility
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-22 Issue conversion repeated</td>
+          <td>No second finding from same source conversion</td>
+        </tr>
+        <tr>
+          <td>NEG-23 Exit during fieldwork/unresolved AFR</td>
+          <td>
+            Locked until lifecycle and finalized dialogue requirements pass
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-24 Start reporting before exit completion</td>
+          <td>Rejected</td>
+        </tr>
+        <tr>
+          <td>NEG-25 Transfer unissued report</td>
+          <td>Rejected; no CMS case created</td>
+        </tr>
+        <tr>
+          <td>NEG-26 Retry transfer/reconcile</td>
+          <td>No duplicate CMS cases; source lineage stable</td>
+        </tr>
+        <tr>
+          <td>NEG-27 Edit old approved/issued version</td>
+          <td>Rejected or read-only; formal revision preserves prior text</td>
+        </tr>
+        <tr>
+          <td>NEG-28 Two tabs edit same version</td>
+          <td>
+            Second stale save rejected; refreshing recovers current version
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-29 Private file anonymous download</td>
+          <td>Denied; no public storage bypass</td>
+        </tr>
+        <tr>
+          <td>NEG-30 Auditor vs auditee permissions</td>
+          <td>
+            Auditee can supply requested files but cannot professionally approve
+            evidence or issue audit report
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-31 Browser responsiveness</td>
+          <td>
+            At 390px and desktop widths, all fields, save buttons and validation
+            text are reachable
+          </td>
+        </tr>
+        <tr>
+          <td>NEG-32 Audit trail</td>
+          <td>
+            Saves/transitions/transfer record actual actor, target record, time
+            and version
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <h2 id="section-27">
+      27 · Troubleshooting and known verification boundaries
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Check / next action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Planning conformance Blocked at draft</td>
+          <td>
+            Expected until package prerequisites complete. Create draft, finish
+            AEP/program/traceability, then approve
+          </td>
+        </tr>
+        <tr>
+          <td>Focus selector empty</td>
+          <td>
+            Refresh engagement scope and verify saved REVENUE + three focus
+            selections. If still absent, capture a scope-to-selector defect
+          </td>
+        </tr>
+        <tr>
+          <td>Matrix text disappears</td>
+          <td>
+            Record exact matrix code and before/after text; failure of
+            persistence, not normal versioning
+          </td>
+        </tr>
+        <tr>
+          <td>Execution shows no procedures</td>
+          <td>
+            Check current program is ACTIVE, same engagement selected and
+            view/execute permissions present
+          </td>
+        </tr>
+        <tr>
+          <td>Cannot submit fieldwork</td>
+          <td>
+            Edit Execution status to COMPLETED and save new version; then
+            submit. Check participant/paper/evidence links
+          </td>
+        </tr>
+        <tr>
+          <td>End Fieldwork still blocked</td>
+          <td>
+            Check program procedure status, not only fieldwork status. Complete
+            procedure progress with actual WP reference after finalization
+          </td>
+        </tr>
+        <tr>
+          <td>Evidence says LIMITED</td>
+          <td>
+            Review professional assessment and unresolved gaps; locked file is
+            not automatically accepted support
+          </td>
+        </tr>
+        <tr>
+          <td>CMS request missing</td>
+          <td>
+            Confirm SENT/delivered state, BPLD office, Oxanna recipient,
+            permissions and refreshed session
+          </td>
+        </tr>
+        <tr>
+          <td>CMS entry notes missing</td>
+          <td>
+            Completed record should remain readable if authorized; capture
+            engagement ID, user office and endpoint result
+          </td>
+        </tr>
+        <tr>
+          <td>Missing approve/review button</td>
+          <td>
+            Verify actual permission, record state, team/office scope and
+            separation policy; role name alone is insufficient
+          </td>
+        </tr>
+        <tr>
+          <td>No AFR reply path for Oxanna</td>
+          <td>
+            Record navigation/permission gap; CMS Evidence Requests is not a
+            generic AFR response page
+          </td>
+        </tr>
+        <tr>
+          <td>Reporting progress control blocks</td>
+          <td>
+            Record required status/reference against configured planning
+            control. Missing UI control is a defect, not grounds to bypass
+            validation
+          </td>
+        </tr>
+        <tr>
+          <td>Reconciliation blocked by ARMIS</td>
+          <td>
+            Verify actual approved resource data and provider health; planned
+            figures do not substitute for provider actuals
+          </td>
+        </tr>
+        <tr>
+          <td>API error after save</td>
+          <td>
+            Capture visible message and server log correlation; never count an
+            error toast as successful save
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Some older repository workflow documents omit Entry/Exit lifecycle stages
+      or describe older approval assumptions. This guide uses current transition
+      services as the operational reference. It does not certify compliance with
+      COA, NGICS or PGIAM; professional rules must be validated against the
+      applicable authoritative documents separately.
+    </p>
+    <h2 id="section-28">28 · Final run sheet and source index</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Record / result</th>
+          <th>Tester fills actual value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Run, date, environment, tester</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Engagement / AEO / acknowledged by</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>AEP / Audit Program / active version</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Planning package current and approved versions</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>OBJ/Flow/Risk/Procedure codes reconciled</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Entry Conference / historical CMS visibility</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Evidence Request / Oxanna responses</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Evidence / professional eligibility / exact versions</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>WP-01/02/03 actual system codes</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Fieldwork record codes / finalized versions</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Three procedure statuses COMPLETED</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Issue / finding / finalized dialogue</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Recommendations 1 and 2 / due dates</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Exit Conference / completion time</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Final report / issued version / checksum</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>CMS case 1 / case 2 / retry count</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Manifest / effort snapshot / approval</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Failed/blocked cases and defect references</td>
+          <td>______________________________</td>
+        </tr>
+        <tr>
+          <td>Overall outcome / reviewer / date</td>
+          <td>NOT RUN / PASS / FAIL / BLOCKED — __________________</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Source files checked for this guide (paths relative to repository root):
+    </p>
+    <ul>
+      <li>
+        <code>backend/config/demo.php</code> and
+        <code>src/pages/shared/LoginPage.jsx</code>: actual demo identities and
+        card behavior.
+      </li>
+      <li>
+        <code
+          >backend/app/Services/Aems/AemsEngagementTransitionService.php</code
+        >: aggregate stage transitions and gates.
+      </li>
+      <li>
+        <code>backend/app/Http/Requests/Aems/</code>: engagement, scope,
+        evidence, working-paper, fieldwork, issue and finding validation.
+      </li>
+      <li>
+        <code>backend/app/Http/Controllers/Api/Aems/</code>: AEO, AEP, program,
+        planning package, conferences, dialogue, reports and transfer
+        fields/actions.
+      </li>
+      <li>
+        <code>backend/app/Services/Aems/AemsPlanningPackageService.php</code>:
+        planning readiness and version relationships.
+      </li>
+      <li>
+        <code>backend/app/Services/Aems/AemsFieldworkService.php</code> and
+        <code>AemsProgramService.php</code>: execution completion versus
+        procedure status.
+      </li>
+      <li>
+        <code>backend/app/Services/Aems/AemsEvidenceService.php</code> and
+        <code>AemsEvidenceRequestService.php</code>: eligibility and
+        evidence-request response behavior.
+      </li>
+      <li>
+        <code>src/pages/aems/</code>: form labels, record selectors and
+        displayed workflow controls.
+      </li>
+      <li>
+        <code>src/pages/cms/CmsEvidenceRequestsPage.jsx</code>,
+        <code>CmsEntryConferenceAcknowledgementsPage.jsx</code> and
+        <code>src/config/navigation.js</code>: auditee entry points.
+      </li>
+      <li>
+        <code>docs/AEMS_WORKFLOW_DESIGN.md</code>,
+        <code>docs/AEMS_GOVERNANCE_AND_ACCEPTANCE.md</code> and
+        <code>docs/END_TO_END_TESTING_GUIDE.md</code>: supporting repository
+        references; current service gates take precedence for testing behavior.
+      </li>
+    </ul>
+    <p>
+      All unlisted search/filter controls are navigation aids, not business
+      content: select the new engagement, current program/version, matching
+      record type and blank search to show all records. Optional external
+      recipient/contact fields remain blank on this internal BPLD path.
+      Generated metadata and hidden concurrency values are managed by AGIS. For
+      any additional configured custom field, record its label, selected
+      master-list value and actual outcome as an environment-specific addendum.
+    </p>
+  </body>
+</html>
