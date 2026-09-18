@@ -40,7 +40,10 @@ class CoreDashboardService
 
         $engagements = $this->aems->visibleEngagements(AuditEngagement::query()->whereNull('deleted_at'), $user);
         $cmsCases = $this->cms->visibleCases(CmsRecommendationCase::query(), $user, 'cms.recommendation.view');
-        $resources = $this->armis->scopeVisible(ArmisResourceProfile::query()->where('is_active', true), $user);
+        $resources = $this->armis->scopeVisible(
+            ArmisResourceProfile::query()->where('status', 'ACTIVE'),
+            $user,
+        );
 
         $statusCounts = (clone $engagements)->selectRaw('status, count(*) as aggregate')->groupBy('status')->pluck('aggregate', 'status');
         $recommendationCounts = (clone $cmsCases)->selectRaw('status_code, count(*) as aggregate')->groupBy('status_code')->pluck('aggregate', 'status_code');

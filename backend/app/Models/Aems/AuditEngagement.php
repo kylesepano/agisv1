@@ -75,14 +75,17 @@ class AuditEngagement extends Model
         'iap_audit_universe_item_id',
         'source_snapshot',
         'engagement_office_id',
+        'requesting_office_id',
         'special_authority_reference',
         'special_authority_type_code',
         'special_authority_class',
         'special_authority_date',
+        'special_authority_received_date',
         'special_authority_approved_by',
         'special_authority_document_version_id',
         'audit_type_id',
         'engagement_approach_id',
+        'audit_year',
         'background',
         'objectives',
         'scope',
@@ -90,6 +93,8 @@ class AuditEngagement extends Model
         'scope_limitations',
         'scope_source_variance',
         'exclusions',
+        'period_covered_start_date',
+        'period_covered_end_date',
         'planned_start_date',
         'planned_end_date',
         'actual_start_date',
@@ -130,6 +135,10 @@ class AuditEngagement extends Model
             'suspension_metadata' => 'array',
             'cancellation_metadata' => 'array',
             'special_authority_date' => 'date',
+            'special_authority_received_date' => 'date',
+            'audit_year' => 'integer',
+            'period_covered_start_date' => 'date',
+            'period_covered_end_date' => 'date',
             'planned_start_date' => 'date',
             'planned_end_date' => 'date',
             'actual_start_date' => 'date',
@@ -247,6 +256,11 @@ class AuditEngagement extends Model
     public function engagementOffice(): BelongsTo
     {
         return $this->belongsTo(Office::class, 'engagement_office_id')->withTrashed();
+    }
+
+    public function requestingOffice(): BelongsTo
+    {
+        return $this->belongsTo(Office::class, 'requesting_office_id')->withTrashed();
     }
 
     public function scopeBackfillReview(): HasOne

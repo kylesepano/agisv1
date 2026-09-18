@@ -12,10 +12,23 @@ export default function ModulePage() {
   const location = useLocation();
   const page = pageForPath(location.pathname);
   const PageIcon = page?.icon ?? LayoutGrid;
-  const permissionPrefix = page?.permission?.split(".")[0];
-  const allowedActions = user.permissions
-    .filter((permission) => permission.startsWith(`${permissionPrefix}.`))
-    .map((permission) => permission.split(".")[1].replaceAll("_", " "));
+  const permissionPrefixes = (Array.isArray(page?.permission)
+    ? page.permission
+    : [page?.permission]
+  )
+    .filter(Boolean)
+    .map((permission) => permission.split(".")[0]);
+  const allowedActions = [
+    ...new Set(
+      (user.permissions ?? [])
+        .filter((permission) =>
+          permissionPrefixes.some((prefix) =>
+            permission.startsWith(`${prefix}.`),
+          ),
+        )
+        .map((permission) => permission.split(".")[1].replaceAll("_", " ")),
+    ),
+  ];
 
   return (
     <div className="grid min-h-[calc(100vh-6rem)] place-items-center p-5">
@@ -24,15 +37,14 @@ export default function ModulePage() {
           <PageIcon size={48} strokeWidth={1.5} />
         </span>
         <span className="mt-7 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-700">
-          Coming soon
+          Currently under development
         </span>
         <h2 className="mt-4 text-3xl font-bold text-slate-800">
           {page?.label ?? "AGIS Module"}
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500">
-          This route is ready and protected by your AGIS role. The module
-          workflow, forms, tables, and server endpoints will be implemented in
-          the next phase.
+          This module is not yet available for use. Its current pages and
+          implementation have been retained safely while development continues.
         </p>
 
         <div className="mx-auto mt-7 max-w-xl rounded-xl border border-slate-200 bg-slate-50 p-4 text-left">

@@ -9,6 +9,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  ShieldCheck,
   UserRound,
   X,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import Brand from "../components/Brand";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import {
   hasPermission,
+  modules,
   navigationSections,
   notificationPathForUser,
   pageForPath,
@@ -27,50 +29,9 @@ import { notificationApi } from "../services/api";
 import { useToast } from "../ui/toast-context";
 import { formatConfiguredDate } from "../utils/date-format";
 
-function groupedNavigationItems(items) {
-  const groups = [];
-  const byGroup = new Map();
-
-  items.forEach((item) => {
-    const key = item.group ?? "__ungrouped";
-    if (!byGroup.has(key)) {
-      const group = { key, label: item.group ?? null, items: [] };
-      byGroup.set(key, group);
-      groups.push(group);
-    }
-    byGroup.get(key).items.push(item);
-  });
-
-  return groups;
-}
-
-function navigationItemActive(item, location) {
-  const target = item.href ?? item.path;
-  const [targetPath, targetQuery = ""] = target.split("?");
-  const isPathMatch = item.end
-    ? location.pathname === targetPath
-    : location.pathname === targetPath ||
-      location.pathname.startsWith(`${targetPath}/`);
-
-  if (!isPathMatch) return false;
-  if (!targetQuery) return true;
-
-  const expected = new URLSearchParams(targetQuery);
-  const current = new URLSearchParams(location.search);
-  return [...expected.entries()].every(
-    ([key, value]) => current.get(key) === value,
-  );
-}
-
 function NavigationSection({ section, user, collapsed, onNavigate }) {
   const [expanded, setExpanded] = useState(true);
   const location = useLocation();
-  const [expandedItems, setExpandedItems] = useState(() => ({
-    iap: location.pathname.startsWith("/internal-audit-planning"),
-    aem: location.pathname.startsWith("/audit-engagement-management"),
-    cms: location.pathname.startsWith("/compliance-management"),
-    arms: location.pathname.startsWith("/audit-resource-management"),
-  }));
   const items = visibleFor(user, section.items);
 
   if (items.length === 0) return null;
@@ -99,130 +60,31 @@ function NavigationSection({ section, user, collapsed, onNavigate }) {
         >
           {items.map((item) => {
             const ItemIcon = item.icon;
-            const childItems = visibleFor(user, item.children ?? []);
-            const childGroups = groupedNavigationItems(childItems);
-            const childExpanded =
-              expandedItems[item.key] ??
-              location.pathname.startsWith(item.path);
-            const moduleActive = childItems.some(
-              (child) =>
-                location.pathname === child.path ||
-                location.pathname.startsWith(`${child.path}/`),
-            );
-
             return (
-              <div className="grid gap-1" key={item.path}>
-                <div className="flex w-full min-w-0 max-w-full items-center gap-1">
-                  {childItems.length > 0 ? (
-                    <button
-                      aria-expanded={childExpanded}
-                      aria-label={`${childExpanded ? "Collapse" : "Expand"} ${item.label}`}
-                      className={`group flex min-h-10 min-w-0 flex-1 items-center rounded-lg px-2.5 text-left text-[13px] font-medium transition duration-200 focus-visible:outline-2 focus-visible:outline-cyan-300 ${
-                        moduleActive
-                          ? "bg-[#4a87cb] text-white shadow-sm"
-                          : "text-blue-50 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"
-                      } ${collapsed ? "justify-center" : "gap-3"}`}
-                      onClick={() =>
-                        setExpandedItems((current) => ({
-                          ...current,
-                          [item.key]: !childExpanded,
-                        }))
-                      }
-                      title={collapsed ? item.label : undefined}
-                      type="button"
-                    >
-                      <ItemIcon className="shrink-0" size={19} />
-                      {!collapsed && (
-                        <span className="min-w-0 flex-1 truncate">
-                          {item.label}
-                        </span>
-                      )}
-                    </button>
-                  ) : (
-                    <NavLink
-                      className={({ isActive }) =>
-                        `group flex min-h-10 min-w-0 flex-1 items-center rounded-lg px-2.5 text-[13px] font-medium transition duration-200 focus-visible:outline-2 focus-visible:outline-cyan-300 ${
-                          isActive || moduleActive
-                            ? "bg-[#4a87cb] text-white shadow-sm"
-                            : "text-blue-50 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"
-                        } ${collapsed ? "justify-center" : "gap-3"}`
-                      }
-                      to={item.path}
-                      onClick={onNavigate}
-                      title={collapsed ? item.label : undefined}
-                    >
-                      <ItemIcon className="shrink-0" size={19} />
-                      {!collapsed && (
-                        <span className="min-w-0 flex-1 truncate">
-                          {item.label}
-                        </span>
-                      )}
-                    </NavLink>
-                  )}
-                  {!collapsed && childItems.length > 0 && (
-                    <button
-                      aria-expanded={childExpanded}
-                      aria-label={`${childExpanded ? "Hide" : "Show"} ${item.label} pages`}
-                      className="grid h-9 w-8 shrink-0 place-items-center rounded-lg text-blue-100 transition hover:bg-white/12 hover:text-white"
-                      onClick={() =>
-                        setExpandedItems((current) => ({
-                          ...current,
-                          [item.key]: !childExpanded,
-                        }))
-                      }
-                      type="button"
-                    >
-                      {childExpanded ? (
-                        <ChevronUp size={15} />
-                      ) : (
-                        <ChevronDown size={15} />
-                      )}
-                    </button>
-                  )}
-                </div>
+              <NavLink
+                className={({ isActive }) => {
+                  const isCurrentModule = (item.children ?? []).some(
+                    (child) =>
+                      location.pathname === child.path ||
+                      location.pathname.startsWith(`${child.path}/`),
+                  );
+                  const isCurrent = isActive || isCurrentModule;
 
-                {!collapsed && childItems.length > 0 && childExpanded && (
-                  <nav
-                    aria-label={`${item.label} pages`}
-                    className="ml-3 grid min-w-0 max-w-full gap-1 border-l border-blue-200/30 pl-3"
-                  >
-                    {childGroups.map((group) => (
-                      <div className="grid gap-1" key={group.key}>
-                        {group.label && (
-                          <p className="px-2.5 pb-0.5 pt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-blue-200/75 first:pt-0">
-                            {group.label}
-                          </p>
-                        )}
-                        {group.items.map((child) => {
-                          const ChildIcon = child.icon;
-                          const childActive = navigationItemActive(
-                            child,
-                            location,
-                          );
-                          return (
-                            <NavLink
-                              className={({ isActive }) =>
-                                `flex min-h-9 min-w-0 items-center gap-2 rounded-lg px-2.5 text-[12px] font-medium transition ${
-                                  isActive || childActive
-                                    ? "bg-white/18 text-white shadow-sm"
-                                    : "text-blue-100 hover:bg-white/10 hover:text-white"
-                                }`
-                              }
-                              end={Boolean(child.end)}
-                              key={child.screenId ?? child.href ?? child.path}
-                              onClick={onNavigate}
-                              to={child.href ?? child.path}
-                            >
-                              <ChildIcon className="shrink-0" size={15} />
-                              <span className="truncate">{child.label}</span>
-                            </NavLink>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </nav>
-                )}
-              </div>
+                  return `group relative flex min-h-11 min-w-0 items-center rounded-lg px-2.5 text-[13px] font-medium transition duration-200 focus-visible:outline-2 focus-visible:outline-cyan-300 ${
+                    isCurrent
+                      ? "bg-[#2e6eb3] text-[#ffd23f] shadow-sm ring-1 ring-white/10 after:absolute after:inset-y-1 after:right-0 after:w-1 after:rounded-l-full after:bg-[#20e0c2]"
+                      : "text-blue-50 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"
+                  } ${collapsed ? "justify-center" : "gap-3"}`;
+                }}
+                end={Boolean(item.end)}
+                key={item.path}
+                onClick={onNavigate}
+                title={collapsed ? item.label : undefined}
+                to={item.path}
+              >
+                <ItemIcon className="shrink-0" size={20} />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+              </NavLink>
             );
           })}
         </nav>
@@ -329,6 +191,19 @@ export default function AppLayout() {
 
   const sidebarWidth = collapsed ? "lg:w-20" : "lg:w-72";
   const navigationCollapsed = collapsed && !mobileOpen;
+  const currentModule = modules.find((module) =>
+    location.pathname === module.path ||
+    (module.children ?? []).some(
+      (child) =>
+        location.pathname === child.path ||
+        location.pathname.startsWith(`${child.path}/`),
+    ),
+  );
+  const HeaderIcon = currentModule?.icon ?? currentPage?.icon ?? ShieldCheck;
+  const headerTitle =
+    currentModule?.label ??
+    currentPage?.label ??
+    (location.pathname === "/unauthorized" ? "Access denied" : "AGIS");
 
   return (
     <div className="flex min-h-screen bg-[#f3f8fc] font-['Segoe_UI',Arial,sans-serif] text-slate-800">
@@ -403,9 +278,11 @@ export default function AppLayout() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
-        <header className="sticky top-0 z-30 flex min-h-16 min-w-0 items-center border-b border-slate-200/90 bg-white px-3 shadow-sm sm:px-5">
+        <header
+          className="sticky top-0 z-30 flex min-h-[74px] min-w-0 items-center border-b border-blue-500/50 bg-[#2f6cad] px-3 text-white shadow-sm sm:px-5"
+        >
           <button
-            className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-100 lg:hidden"
+            className="grid h-10 w-10 place-items-center rounded-lg border border-white/30 text-white transition hover:bg-white/10 lg:hidden"
             type="button"
             onClick={() => setMobileOpen(true)}
             aria-label="Open navigation"
@@ -414,7 +291,7 @@ export default function AppLayout() {
           </button>
 
           <button
-            className="mr-3 hidden h-11 w-11 place-items-center rounded-lg text-[#068bc7] transition duration-200 hover:scale-105 hover:bg-sky-50 lg:grid"
+            className="mr-3 hidden h-11 w-11 place-items-center rounded-lg text-white transition duration-200 hover:scale-105 hover:bg-white/10 lg:grid"
             type="button"
             onClick={() => setCollapsed((current) => !current)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -426,15 +303,13 @@ export default function AppLayout() {
             )}
           </button>
 
-          <h1 className="ml-3 truncate text-xl font-bold text-slate-800 sm:text-2xl lg:ml-0">
-            {currentPage?.label ??
-              (location.pathname === "/unauthorized"
-                ? "Access denied"
-                : "AGIS")}
+          <HeaderIcon className="mr-3 hidden lg:block" size={31} />
+          <h1 className="ml-3 truncate text-xl font-medium text-white sm:text-2xl lg:ml-0">
+            {headerTitle}
           </h1>
 
           <div className="ml-auto flex items-center gap-2">
-            <label className="hidden h-10 w-64 items-center gap-2 rounded-lg border border-slate-200 px-3 text-slate-500 transition focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-100 xl:flex">
+            <label className="hidden h-10 w-80 items-center gap-2 rounded-lg border border-white/30 bg-white px-3 text-slate-500 transition xl:flex">
               <Search size={16} />
               <input
                 className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
@@ -448,7 +323,7 @@ export default function AppLayout() {
                 <button
                   aria-expanded={notificationOpen}
                   aria-label="Notifications"
-                  className="relative grid h-10 w-10 place-items-center rounded-lg text-slate-700 transition hover:bg-slate-100"
+                  className="relative grid h-10 w-10 place-items-center rounded-lg text-white transition hover:bg-white/10"
                   onClick={() => {
                     setNotificationOpen((current) => !current);
                     loadNotifications();
@@ -553,7 +428,7 @@ export default function AppLayout() {
               </div>
             )}
             <button
-              className="hidden h-10 w-10 place-items-center rounded-lg text-slate-700 transition hover:bg-slate-100 sm:grid"
+              className="hidden h-10 w-10 place-items-center rounded-lg text-white transition hover:bg-white/10 sm:grid"
               type="button"
               onClick={() => toast.info("Help center is coming soon.")}
               aria-label="Help"
@@ -563,7 +438,7 @@ export default function AppLayout() {
 
             <div className="relative">
               <button
-                className="flex items-center gap-2 rounded-lg px-1.5 py-1 transition hover:bg-slate-100"
+                className="flex items-center gap-2 rounded-lg px-1.5 py-1 transition hover:bg-white/10"
                 type="button"
                 onClick={() => setProfileOpen((current) => !current)}
                 aria-expanded={profileOpen}
@@ -572,10 +447,10 @@ export default function AppLayout() {
                   {user.initials}
                 </span>
                 <span className="hidden max-w-36 text-left lg:block">
-                  <strong className="block truncate text-xs text-slate-800">
+                  <strong className="block truncate text-xs text-white">
                     {user.name}
                   </strong>
-                  <small className="block truncate text-[10px] text-slate-500">
+                  <small className="block truncate text-[10px] text-blue-100">
                     {user.role}
                   </small>
                 </span>

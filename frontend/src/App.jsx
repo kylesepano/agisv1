@@ -74,6 +74,9 @@ const IapReportsPage = lazy(() => import("./pages/iap/IapReportsPage"));
 const AemsEngagementRegistryPage = lazy(
   () => import("./pages/aems/AemsEngagementRegistryPage"),
 );
+const AemsEngagementCreatePage = lazy(
+  () => import("./pages/aems/AemsEngagementCreatePage"),
+);
 const AemsEngagementScopePage = lazy(
   () => import("./pages/aems/AemsEngagementScopePage"),
 );
@@ -769,6 +772,24 @@ export default function App() {
               <ProtectedPage permission="aems.engagement.view">
                 <Suspense fallback={<RouteLoading />}>
                   <AemsEngagementRegistryPage />
+                </Suspense>
+              </ProtectedPage>
+            }
+          />
+          <Route
+            path="audit-engagement-management/developing"
+            element={
+              <ProtectedPage permission="aems.engagement.view">
+                <Navigate to="/audit-engagement-management" replace />
+              </ProtectedPage>
+            }
+          />
+          <Route
+            path="audit-engagement-management/create"
+            element={
+              <ProtectedPage permission="aems.engagement.create">
+                <Suspense fallback={<RouteLoading />}>
+                  <AemsEngagementCreatePage />
                 </Suspense>
               </ProtectedPage>
             }

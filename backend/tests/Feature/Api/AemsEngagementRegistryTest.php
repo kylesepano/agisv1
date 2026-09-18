@@ -8,6 +8,8 @@ use App\Models\IapPlanEngagement;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -216,6 +218,59 @@ class AemsEngagementRegistryTest extends TestCase
             'objectives' => '',
             'scope' => '',
             'status' => 'DRAFT',
+        ]);
+    }
+
+    public function test_unplanned_engagement_persists_screen_200_02b_fields_and_authority_document(): void
+    {
+        Storage::fake('local');
+
+        $management = $this->user('departmenthead');
+        $mayor = $this->user('mayor');
+        $source = IapPlanEngagement::query()->with(['offices', 'auditAreas'])->firstOrFail();
+        $office = $source->offices->firstOrFail();
+        $area = $source->auditAreas->firstOrFail();
+        Sanctum::actingAs($management);
+
+        $created = $this->post('/api/aems/engagements', [
+            'title' => 'Authorized Procurement Review',
+            'specialAuthorityReference' => 'MO-2026-015',
+            'specialAuthorityTypeCode' => 'WRITTEN_INSTRUCTION',
+            'specialAuthorityDate' => '2026-09-16',
+            'specialAuthorityReceivedDate' => '2026-09-16',
+            'specialAuthorityApprovedBy' => $mayor->id,
+            'requestingOfficeId' => $office->id,
+            'auditYear' => 2026,
+            'objectives' => 'Assess procurement controls.',
+            'periodCoveredStartDate' => '2026-01-01',
+            'periodCoveredEndDate' => '2026-12-31',
+            'plannedStartDate' => '2026-09-21',
+            'plannedEndDate' => '2026-10-16',
+            'plannedPersonDays' => 26,
+            'officeIds' => [$office->id],
+            'auditAreaIds' => [$area->id],
+            'supportingDocument' => UploadedFile::fake()->create(
+                'mayor-order.pdf',
+                120,
+                'application/pdf',
+            ),
+        ], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.engagement.requestingOfficeId', $office->id)
+            ->assertJsonPath('data.engagement.auditYear', 2026)
+            ->assertJsonPath('data.engagement.periodCoveredStartDate', '2026-01-01')
+            ->assertJsonPath('data.engagement.periodCoveredEndDate', '2026-12-31')
+            ->assertJsonPath('data.engagement.specialAuthorityReceivedDate', '2026-09-16')
+            ->json('data.engagement');
+
+        $engagement = AuditEngagement::query()->findOrFail($created['id']);
+        $version = $engagement->specialAuthorityDocumentVersion()->firstOrFail();
+
+        $this->assertSame('mayor-order.pdf', $version->original_file_name);
+        Storage::disk('local')->assertExists($version->storage_path);
+        $this->assertDatabaseHas('document_links', [
+            'record_type' => 'AUDIT_ENGAGEMENT_AUTHORITY',
+            'record_id' => $engagement->id,
         ]);
     }
 

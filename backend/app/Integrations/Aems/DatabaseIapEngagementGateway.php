@@ -82,6 +82,7 @@ class DatabaseIapEngagementGateway implements IapEngagementGateway
     {
         return [
             'plan.prioritizationRun.riskPeriod',
+            'plan.approver:id,name',
             'engagementType',
             'auditApproach',
             'priority',

@@ -3,14 +3,20 @@
 namespace App\Services;
 
 use App\Contracts\Aems\IapEngagementGateway;
-use App\Models\AuditEngagement;
 use App\Models\AuditArea;
+use App\Models\AuditEngagement;
 use App\Models\AuditFocus;
+use App\Models\Document;
+use App\Models\DocumentVersion;
 use App\Models\IapPlanEngagement;
+use App\Models\MasterList;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -70,6 +76,7 @@ class AemsEngagementRegistryService
                 'iap_audit_universe_item_id' => $source->audit_universe_item_id,
                 'source_snapshot' => $snapshot,
                 'engagement_office_id' => $officeIds->first(),
+                'audit_year' => (int) $source->plan->fiscal_year,
                 'audit_type_id' => $source->engagement_type_id,
                 'engagement_approach_id' => $source->audit_approach_id,
                 'background' => $source->background,
@@ -79,6 +86,8 @@ class AemsEngagementRegistryService
                 'scope_limitations' => null,
                 'scope_source_variance' => null,
                 'exclusions' => $source->exclusions,
+                'period_covered_start_date' => $source->plan->planning_period_start,
+                'period_covered_end_date' => $source->plan->planning_period_end,
                 'planned_start_date' => $source->planned_start_date,
                 'planned_end_date' => $source->planned_end_date,
                 'expected_report_date' => $source->expected_report_date,
@@ -150,7 +159,9 @@ class AemsEngagementRegistryService
                 'special_authority_type_code' => $validated['specialAuthorityTypeCode'] ?? null,
                 'special_authority_class' => $validated['specialAuthorityClass'] ?? 'SPECIAL',
                 'special_authority_date' => $validated['specialAuthorityDate'],
+                'special_authority_received_date' => $validated['specialAuthorityReceivedDate'] ?? null,
                 'special_authority_approved_by' => $validated['specialAuthorityApprovedBy'],
+                'requesting_office_id' => $validated['requestingOfficeId'] ?? null,
                 'source_snapshot' => [
                     'schemaVersion' => 1,
                     'capturedAt' => now()->toISOString(),
@@ -161,7 +172,9 @@ class AemsEngagementRegistryService
                         'typeCode' => $validated['specialAuthorityTypeCode'] ?? null,
                         'class' => $validated['specialAuthorityClass'] ?? 'SPECIAL',
                         'date' => $validated['specialAuthorityDate'],
+                        'receivedDate' => $validated['specialAuthorityReceivedDate'] ?? null,
                         'approvedBy' => $validated['specialAuthorityApprovedBy'],
+                        'requestingOfficeId' => $validated['requestingOfficeId'] ?? null,
                     ],
                 ],
                 'status' => 'DRAFT',
@@ -174,6 +187,16 @@ class AemsEngagementRegistryService
             ]);
             if (! empty($validated['officeIds']) && ! empty($validated['auditAreaIds'])) {
                 $this->syncCoverage($engagement, $validated);
+            }
+            if ($request->hasFile('supportingDocument')) {
+                $version = $this->storeAuthorityDocument(
+                    $request,
+                    $engagement,
+                    $request->file('supportingDocument'),
+                );
+                $engagement->forceFill([
+                    'special_authority_document_version_id' => $version->id,
+                ])->save();
             }
 
             $newValues = $this->auditSnapshot($engagement);
@@ -264,8 +287,12 @@ class AemsEngagementRegistryService
                         ?? $locked->special_authority_class,
                     'special_authority_date' => $validated['specialAuthorityDate']
                         ?? $locked->special_authority_date,
+                    'special_authority_received_date' => $validated['specialAuthorityReceivedDate']
+                        ?? $locked->special_authority_received_date,
                     'special_authority_approved_by' => $validated['specialAuthorityApprovedBy']
                         ?? $locked->special_authority_approved_by,
+                    'requesting_office_id' => $validated['requestingOfficeId']
+                        ?? $locked->requesting_office_id,
                 ];
             }
             $locked->fill([
@@ -315,7 +342,7 @@ class AemsEngagementRegistryService
      * independent from registry metadata so an approved source snapshot and
      * approved downstream records cannot be silently changed.
      *
-     * @param array<string, mixed> $validated
+     * @param  array<string, mixed>  $validated
      */
     public function updateScope(Request $request, AuditEngagement $engagement, array $validated): AuditEngagement
     {
@@ -389,6 +416,10 @@ class AemsEngagementRegistryService
             'title' => $validated['title'],
             'audit_type_id' => $validated['auditTypeId'] ?? null,
             'engagement_approach_id' => $validated['engagementApproachId'] ?? null,
+            'audit_year' => $validated['auditYear']
+                ?? (isset($validated['plannedStartDate'])
+                    ? (int) substr((string) $validated['plannedStartDate'], 0, 4)
+                    : null),
             'background' => $validated['background'] ?? null,
             // The registry draft intentionally leaves SCR-212 scope content
             // for the dedicated Engagement Scope workspace.  The legacy
@@ -400,6 +431,8 @@ class AemsEngagementRegistryService
             'scope_limitations' => $validated['scopeLimitations'] ?? null,
             'scope_source_variance' => $validated['scopeSourceVariance'] ?? null,
             'exclusions' => $validated['exclusions'] ?? null,
+            'period_covered_start_date' => $validated['periodCoveredStartDate'] ?? null,
+            'period_covered_end_date' => $validated['periodCoveredEndDate'] ?? null,
             'planned_start_date' => $validated['plannedStartDate'] ?? null,
             'planned_end_date' => $validated['plannedEndDate'] ?? null,
             'expected_report_date' => $validated['expectedReportDate'] ?? null,
@@ -589,8 +622,11 @@ class AemsEngagementRegistryService
                 'fiscalYear' => $source->plan->fiscal_year,
                 'status' => $source->plan->status,
                 'revisionNumber' => $source->plan->revision_number,
+                'periodStart' => $source->plan->planning_period_start?->toDateString(),
+                'periodEnd' => $source->plan->planning_period_end?->toDateString(),
                 'approvedAt' => $source->plan->approved_at?->toISOString(),
                 'approvedBy' => $source->plan->approved_by,
+                'approvedByName' => $source->plan->approver?->name,
             ],
             'planEngagement' => [
                 'id' => $source->id,
@@ -683,6 +719,12 @@ class AemsEngagementRegistryService
             'plannedEndDate' => $engagement->planned_end_date?->toDateString(),
             'expectedReportDate' => $engagement->expected_report_date?->toDateString(),
             'plannedPersonDays' => (float) $engagement->planned_person_days,
+            'auditYear' => $engagement->audit_year,
+            'periodCoveredStartDate' => $engagement->period_covered_start_date?->toDateString(),
+            'periodCoveredEndDate' => $engagement->period_covered_end_date?->toDateString(),
+            'requestingOfficeId' => $engagement->requesting_office_id,
+            'specialAuthorityReceivedDate' => $engagement->special_authority_received_date?->toDateString(),
+            'specialAuthorityDocumentVersionId' => $engagement->special_authority_document_version_id,
             'officeIds' => $engagement->offices->pluck('id')->all(),
             'engagementOfficeId' => $engagement->engagement_office_id,
             'iapRiskSourceType' => $engagement->iap_risk_source_type,
@@ -730,6 +772,79 @@ class AemsEngagementRegistryService
         } while (AuditEngagement::withTrashed()->where('engagement_code', $code)->exists());
 
         return $code;
+    }
+
+    private function storeAuthorityDocument(
+        Request $request,
+        AuditEngagement $engagement,
+        UploadedFile $file,
+    ): DocumentVersion {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $path = Storage::disk('local')->putFileAs(
+            "aems/engagements/{$engagement->id}/authority",
+            $file,
+            Str::uuid().($extension ? ".{$extension}" : ''),
+        );
+        if (! $path) {
+            throw ValidationException::withMessages([
+                'supportingDocument' => ['The authority document could not be stored.'],
+            ]);
+        }
+
+        try {
+            $stored = [
+                'original_file_name' => mb_substr($file->getClientOriginalName(), 0, 255),
+                'storage_path' => $path,
+                'mime_type' => $file->getMimeType() ?: 'application/octet-stream',
+                'file_extension' => $extension ?: null,
+                'file_size' => $file->getSize(),
+                'checksum_sha256' => hash_file('sha256', $file->getRealPath()),
+            ];
+            $documentType = MasterList::query()->where('code', 'DOCUMENT_TYPE')
+                ->firstOrFail()->items()->where('code', 'OTHER')->firstOrFail();
+            $confidentiality = MasterList::query()->where('code', 'DOCUMENT_CONFIDENTIALITY')
+                ->firstOrFail()->items()->where('code', 'INTERNAL')->firstOrFail();
+            $document = Document::query()->create([
+                'document_type_id' => $documentType->id,
+                'confidentiality_level_id' => $confidentiality->id,
+                'title' => "{$engagement->engagement_code} - Authority Document",
+                'reference_number' => $engagement->special_authority_reference,
+                'description' => 'Private supporting authority for an unplanned AEMS engagement.',
+                'owner_module' => 'AEMS',
+                'library_visible' => false,
+                ...$stored,
+                'uploaded_by' => $request->user()->id,
+                'updated_by' => $request->user()->id,
+                'is_active' => true,
+            ]);
+            $document->forceFill([
+                'document_code' => $this->runtime->formatNumber('document_number_format', $document->id),
+            ])->save();
+            $version = $document->versions()->create([
+                'version_number' => 1,
+                'version_label' => 'Authority document version 1',
+                'change_summary' => 'Initial immutable engagement-authority document.',
+                ...$stored,
+                'uploaded_by' => $request->user()->id,
+            ]);
+            $document->forceFill([
+                'current_version_id' => $version->id,
+                'version' => $version->version_label,
+            ])->save();
+            $document->links()->create([
+                'module_code' => 'AEMS',
+                'record_type' => 'AUDIT_ENGAGEMENT_AUTHORITY',
+                'record_id' => $engagement->id,
+                'record_code' => $engagement->engagement_code,
+                'record_label' => "{$engagement->engagement_code} - Engagement Authority",
+                'linked_by' => $request->user()->id,
+            ]);
+
+            return $version;
+        } catch (\Throwable $error) {
+            Storage::disk('local')->delete($path);
+            throw $error;
+        }
     }
 
     private function iapRiskSourceType(IapPlanEngagement $source): ?string

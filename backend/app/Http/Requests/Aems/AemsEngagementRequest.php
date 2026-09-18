@@ -61,6 +61,7 @@ class AemsEngagementRequest extends FormRequest
             'specialAuthorityTypeCode' => ['nullable', 'string', 'max:60'],
             'specialAuthorityClass' => ['nullable', 'string', 'in:SPECIAL,EMERGENCY'],
             'specialAuthorityDate' => [Rule::requiredIf($creating), 'nullable', 'date'],
+            'specialAuthorityReceivedDate' => ['nullable', 'date'],
             'specialAuthorityApprovedBy' => [
                 Rule::requiredIf($creating),
                 'nullable',
@@ -69,6 +70,12 @@ class AemsEngagementRequest extends FormRequest
             ],
             'auditTypeId' => ['nullable', 'integer', 'exists:master_list_items,id'],
             'engagementApproachId' => ['nullable', 'integer', 'exists:master_list_items,id'],
+            'requestingOfficeId' => [
+                'nullable',
+                'integer',
+                Rule::exists('offices', 'id')->whereNull('deleted_at'),
+            ],
+            'auditYear' => ['nullable', 'integer', 'min:2000', 'max:2200'],
             'background' => ['nullable', 'string', 'max:10000'],
             // SCR-212 scope and coverage are maintained in the dedicated
             // Engagement Scope workspace. Registry edits must not require the
@@ -79,10 +86,22 @@ class AemsEngagementRequest extends FormRequest
             'scopeLimitations' => ['nullable', 'string', 'max:10000'],
             'scopeSourceVariance' => ['nullable', 'array'],
             'exclusions' => ['nullable', 'string', 'max:10000'],
+            'periodCoveredStartDate' => ['nullable', 'date'],
+            'periodCoveredEndDate' => [
+                'nullable',
+                'date',
+                'after_or_equal:periodCoveredStartDate',
+            ],
             'plannedStartDate' => ['required', 'date'],
             'plannedEndDate' => ['required', 'date', 'after_or_equal:plannedStartDate'],
             'expectedReportDate' => ['nullable', 'date', 'after_or_equal:plannedEndDate'],
             'plannedPersonDays' => ['required', 'numeric', 'gt:0', 'max:999999.99'],
+            'supportingDocument' => [
+                'nullable',
+                'file',
+                'mimes:pdf,doc,docx',
+                'max:10240',
+            ],
             'officeIds' => [
                 'sometimes',
                 'nullable',

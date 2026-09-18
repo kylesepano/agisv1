@@ -158,13 +158,32 @@ class AemsEngagementController extends Controller
                             'fiscalYear' => $source->plan->fiscal_year,
                             'status' => $source->plan->status,
                             'revisionNumber' => $source->plan->revision_number,
+                            'approvedAt' => $source->plan->approved_at?->toISOString(),
+                            'approvedBy' => $source->plan->approver ? [
+                                'id' => $source->plan->approver->id,
+                                'name' => $source->plan->approver->name,
+                            ] : null,
+                            'periodStart' => $source->plan->planning_period_start?->toDateString(),
+                            'periodEnd' => $source->plan->planning_period_end?->toDateString(),
                         ],
                         'offices' => $source->offices
                             ->map->only(['id', 'code', 'name'])->values(),
                         'auditAreas' => $source->auditAreas
                             ->map->only(['id', 'code', 'name'])->values(),
+                        'auditFocuses' => $source->auditFocuses
+                            ->map->only(['id', 'code', 'name', 'audit_area_id'])->values(),
+                        'auditType' => $source->engagementType ? [
+                            'id' => $source->engagementType->id,
+                            'code' => $source->engagementType->code,
+                            'label' => $source->engagementType->label,
+                        ] : null,
+                        'objectives' => $source->objectives,
+                        'scope' => $source->scope,
+                        'background' => $source->background,
+                        'exclusions' => $source->exclusions,
                         'plannedStartDate' => $source->planned_start_date?->toDateString(),
                         'plannedEndDate' => $source->planned_end_date?->toDateString(),
+                        'expectedReportDate' => $source->expected_report_date?->toDateString(),
                         'plannedPersonDays' => (float) $source->estimated_person_days,
                         'priorityScore' => $source->source_priority_score === null
                             ? null : (float) $source->source_priority_score,
@@ -388,6 +407,8 @@ class AemsEngagementController extends Controller
             'auditType',
             'engagementApproach',
             'specialAuthorityApprover:id,employee_id,name,initials',
+            'specialAuthorityDocumentVersion:id,document_id,original_file_name,mime_type,file_size,checksum_sha256',
+            'requestingOffice:id,code,name',
             'creator:id,employee_id,name,initials',
             'updater:id,employee_id,name,initials',
             'offices:id,code,name',
@@ -396,6 +417,7 @@ class AemsEngagementController extends Controller
             'engagementOrder.approver:id,name',
             'engagementOrder.issuer:id,name',
             'scopeBackfillReview',
+            'teamMembers.user:id,employee_id,name,initials',
         ];
     }
 

@@ -646,7 +646,7 @@ export const modules = [
     key: "iap",
     code: "IAP",
     label: "Internal Audit Planning",
-    path: "/internal-audit-planning/dashboard",
+    path: "/internal-audit-planning/developing",
     permission: "iap.view",
     icon: CalendarDays,
     value: 3,
@@ -658,7 +658,7 @@ export const modules = [
     key: "aem",
     code: "AEMS",
     label: "Audit Engagement Management",
-    path: "/audit-engagement-management/dashboard",
+    path: "/audit-engagement-management",
     permission: "aems.engagement.view",
     icon: ShieldCheck,
     value: 18,
@@ -681,7 +681,7 @@ export const modules = [
     key: "cms",
     code: "CMS",
     label: "Compliance Management",
-    path: "/compliance-management/dashboard",
+    path: "/compliance-management/developing",
     permission: ["cms.dashboard.view", "cms.recommendation.view"],
     icon: SquareCheckBig,
     tone: "purple",
@@ -691,7 +691,7 @@ export const modules = [
     key: "arms",
     code: "ARMIS",
     label: "Audit Resource Management",
-    path: "/audit-resource-management/resources",
+    path: "/audit-resource-management/developing",
     permission: "armis.resource.view",
     icon: UsersRound,
     value: 12,
@@ -703,7 +703,7 @@ export const modules = [
     key: "ais",
     code: "AIS",
     label: "Audit Intelligence System",
-    path: "/audit-intelligence-system",
+    path: "/audit-intelligence-system/developing",
     permission: "ais.view",
     icon: ChartNoAxesCombined,
     value: "—",
@@ -869,6 +869,14 @@ export function visibleFor(user, items) {
 }
 
 export function pageForPath(pathname) {
+  if (pathname === "/audit-engagement-management/create") {
+    return {
+      label: "Create Audit Engagement",
+      icon: ShieldCheck,
+      permission: "aems.engagement.create",
+    };
+  }
+
   if (/^\/audit-resource-management\/competencies(?:\/\d+)?$/.test(pathname)) {
     return {
       label: "ARMIS Competencies & Certifications",
