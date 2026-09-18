@@ -10,6 +10,7 @@ import {
   Folder,
   Home,
   Info,
+  LockKeyhole,
   Settings,
   Target,
   TriangleAlert,
@@ -46,6 +47,28 @@ const statusLabels = {
   CLOSED: "Closed",
   SUSPENDED: "Suspended",
   CANCELLED: "Cancelled",
+};
+
+const phaseOrder = {
+  FOUNDATION: 1,
+  PLANNING: 1,
+  EXECUTION: 2,
+  ISSUES_AFR: 3,
+  CONFERENCES: 4,
+  REPORTING: 5,
+  COMPLETION_TRANSFER: 6,
+  CLOSURE: 6,
+};
+
+const tabRequirements = {
+  details: { minimumPhase: 0 },
+  planning: { minimumPhase: 1 },
+  execution: { minimumPhase: 2, reason: "Complete the Planning stage before Execution is available." },
+  issues: { minimumPhase: 3, reason: "Move the engagement to Audit Issues before this workspace is available." },
+  afrs: { minimumPhase: 3, reason: "Move the engagement to Audit Issues before AFRs are available." },
+  reports: { minimumPhase: 5, reason: "Complete the preceding engagement stages before Audit Reports are available." },
+  completion: { minimumPhase: 6, reason: "Issue the audit report before Completion & Transfer is available." },
+  activity: { minimumPhase: 0 },
 };
 
 function formatDate(value, withTime = false) {
@@ -97,7 +120,10 @@ export default function AemsEngagementDetailPage() {
   const [engagement, setEngagement] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const tab = searchParams.get("tab") === "activity" ? "activity" : "details";
+  const requestedTab = searchParams.get("tab");
+  const tab = ["planning", "activity"].includes(requestedTab)
+    ? requestedTab
+    : "details";
 
   useEffect(() => {
     let active = true;
@@ -128,14 +154,15 @@ export default function AemsEngagementDetailPage() {
   const snapshot = engagement.sourceSnapshot ?? {};
   const plan = snapshot.plan ?? {};
   const source = engagement.sourceType === "PLANNED";
+  const currentPhaseOrder = phaseOrder[engagement.phase] ?? 1;
   const tabs = [
     ["details", "Details", Home, null],
-    ["planning", "Planning", FileText, `/audit-engagement-management/planning-package?engagementId=${engagement.id}`],
-    ["execution", "Execution", Settings, `/audit-engagement-management/execution?engagementId=${engagement.id}`],
-    ["issues", "Audit Issues", TriangleAlert, `/audit-engagement-management/issues?engagementId=${engagement.id}`],
-    ["afrs", "AFRs", FileSearch, `/audit-engagement-management/findings?engagementId=${engagement.id}`],
-    ["reports", "Audit Reports", BarChart3, `/audit-engagement-management/reports?engagementId=${engagement.id}`],
-    ["completion", "Completion & Transfer", CheckSquare, `/audit-engagement-management/records-closure?engagementId=${engagement.id}`],
+    ["planning", "Planning", FileText, null],
+    ["execution", "Execution", Settings],
+    ["issues", "Audit Issues", TriangleAlert],
+    ["afrs", "AFRs", FileSearch],
+    ["reports", "Audit Reports", BarChart3],
+    ["completion", "Completion & Transfer", CheckSquare],
     ["activity", "Activity Log", Activity, null],
   ];
 
@@ -155,7 +182,7 @@ export default function AemsEngagementDetailPage() {
           <p className="mt-1 text-sm text-[#154da8]">View the authoritative details of this audit engagement and access its component workspaces.</p>
         </div>
         <div className="flex gap-3">
-          <button className="h-11 rounded-md border border-slate-400 bg-white px-8 text-slate-700" onClick={() => navigate(`/audit-engagement-management/scope?engagementId=${engagement.id}`)} type="button">Edit Engagement</button>
+          <button className="h-11 rounded-md border border-slate-400 bg-white px-8 text-slate-700" onClick={() => navigate(`/audit-engagement-management/edit?engagementId=${engagement.id}&source=${engagement.sourceType === "SPECIAL" ? "unplanned" : "planned"}`)} type="button">Edit Engagement</button>
           <button className="inline-flex h-11 items-center gap-2 rounded-md bg-[#087bea] px-8 text-white" type="button">More Actions <ChevronDown size={16} /></button>
         </div>
       </div>
@@ -177,18 +204,67 @@ export default function AemsEngagementDetailPage() {
         </dl>
       </section>
 
-      <nav className="mb-7 overflow-x-auto border-2 border-[#2294d2] bg-[#dcebfa]" aria-label="Engagement workspaces">
+      <nav className="overflow-x-auto rounded-t-lg border-2 border-[#2294d2] bg-[#dcebfa]" aria-label="Engagement workspaces">
         <div className="flex min-w-max">
-          {tabs.map(([key, label, Icon, path]) => (
-            <button className={`flex h-14 items-center gap-2 border-b-4 px-5 text-base font-semibold ${tab === key ? "border-emerald-400 bg-white text-[#087bea]" : "border-transparent text-[#123a98] hover:bg-white/60"}`} key={key} onClick={() => path ? navigate(path) : setSearchParams(key === "activity" ? { tab: "activity" } : {})} type="button"><Icon className="text-sky-500" size={25} /> {label}</button>
-          ))}
+          {tabs.map(([key, label, Icon]) => {
+            const requirement = tabRequirements[key];
+            const locked = currentPhaseOrder < requirement.minimumPhase;
+            return (
+              <button
+                aria-disabled={locked}
+                className={`flex h-14 items-center gap-2 border-b-4 px-5 text-base font-semibold ${
+                  locked
+                    ? "cursor-not-allowed border-transparent text-slate-400"
+                    : tab === key
+                      ? "border-emerald-400 bg-white text-[#087bea]"
+                      : "border-transparent text-[#123a98] hover:bg-white/60"
+                }`}
+                disabled={locked}
+                key={key}
+                onClick={() => setSearchParams(key === "details" ? {} : { tab: key })}
+                title={locked ? requirement.reason : undefined}
+                type="button"
+              >
+                {locked && <LockKeyhole size={16} />}
+                <Icon className={locked ? "text-slate-400" : "text-sky-500"} size={25} />
+                {label}
+              </button>
+            );
+          })}
         </div>
       </nav>
 
+      <section className="mb-7 rounded-b-lg border-x-2 border-b-2 border-[#2294d2] bg-[#dcebfa] p-4 sm:p-7">
       {tab === "activity" ? (
         <Section icon={Activity} title="Activity Log">
           {(engagement.events ?? []).length ? <ol className="divide-y divide-sky-100">{engagement.events.slice().reverse().map((event) => <li className="grid gap-2 py-4 sm:grid-cols-[12rem_1fr]" key={event.id}><div><strong className="block text-sm text-[#123a98]">{event.action.replaceAll("_", " ")}</strong><span className="text-xs text-slate-500">{formatDate(event.createdAt, true)}</span></div><div className="text-sm text-slate-700"><p>{event.comment || "Engagement record updated."}</p><span className="mt-1 block text-xs text-slate-500">By {event.actor?.name ?? "System"}</span></div></li>)}</ol> : <p className="text-sm text-slate-500">No engagement activity has been recorded.</p>}
         </Section>
+      ) : tab === "planning" ? (
+        <div className="mx-auto grid max-w-[1500px] gap-5 lg:grid-cols-2">
+          <Section icon={FileText} title="Planning Workspace">
+            <dl>
+              <Row label="Planning Stage"><span className="inline-block rounded-lg bg-amber-100 px-4 py-1 font-semibold text-amber-700">{phaseLabels[engagement.phase] ?? "Planning"}</span></Row>
+              <Row label="Engagement Status">{statusLabels[engagement.status] ?? engagement.status}</Row>
+              <Row label="Planning Objective">{engagement.objectives || "No initial objective has been recorded."}</Row>
+            </dl>
+          </Section>
+
+          <Section icon={CalendarDays} title="Planning Schedule">
+            <dl>
+              <Row label="Planned Start">{formatDate(engagement.plannedStartDate)}</Row>
+              <Row label="Planned End">{formatDate(engagement.plannedEndDate)}</Row>
+              <Row label="Planned Duration">{duration(engagement.plannedStartDate, engagement.plannedEndDate)}</Row>
+            </dl>
+          </Section>
+
+          <Section className="lg:col-span-2" icon={Target} title="Planning Scope">
+            <dl>
+              <Row label="Audit Area(s)"><div className="flex flex-wrap gap-2">{(engagement.auditAreas ?? []).map((area) => <span className="rounded bg-[#d8eafa] px-3 py-1 text-xs text-slate-700" key={area.id}>{area.name}</span>)}{!(engagement.auditAreas ?? []).length && "No audit areas have been selected."}</div></Row>
+              <Row label="Audit Focus(es)"><div className="flex flex-wrap gap-2">{(engagement.auditFocuses ?? []).map((focus) => <span className="rounded bg-[#d8eafa] px-3 py-1 text-xs text-slate-700" key={focus.id}>{focus.name}</span>)}{!(engagement.auditFocuses ?? []).length && "No audit focuses have been selected."}</div></Row>
+              <Row label="Planning Note">The detailed Planning Package will be added here while the engagement remains in the Planning stage.</Row>
+            </dl>
+          </Section>
+        </div>
       ) : (
         <div className="mx-auto grid max-w-[1500px] gap-5 lg:grid-cols-2">
           <Section icon={Info} title="Engagement Source">
@@ -205,6 +281,7 @@ export default function AemsEngagementDetailPage() {
           <Section className="lg:col-span-2" icon={Target} title="Initial Scope">
             <dl>
               <Row label="Audit Area(s)"><div className="flex flex-wrap gap-2">{(engagement.auditAreas ?? []).map((area) => <span className="rounded bg-[#d8eafa] px-3 py-1 text-xs text-slate-700" key={area.id}>{area.name}</span>)}{!(engagement.auditAreas ?? []).length && "—"}</div></Row>
+              <Row label="Audit Focus(es)"><div className="flex flex-wrap gap-2">{(engagement.auditFocuses ?? []).map((focus) => <span className="rounded bg-[#d8eafa] px-3 py-1 text-xs text-slate-700" key={focus.id}>{focus.name}</span>)}{!(engagement.auditFocuses ?? []).length && "—"}</div></Row>
               <Row label="Initial Objective"><p className="rounded border border-[#bfd8e8] bg-white px-3 py-2">{engagement.objectives || "—"}</p></Row>
             </dl>
           </Section>
@@ -214,6 +291,7 @@ export default function AemsEngagementDetailPage() {
           </Section>
         </div>
       )}
+      </section>
     </main>
   );
 }

@@ -795,6 +795,16 @@ export default function App() {
             }
           />
           <Route
+            path="audit-engagement-management/edit"
+            element={
+              <ProtectedPage permission="aems.engagement.update">
+                <Suspense fallback={<RouteLoading />}>
+                  <AemsEngagementCreatePage />
+                </Suspense>
+              </ProtectedPage>
+            }
+          />
+          <Route
             path="audit-engagement-management/scope"
             element={
               <ProtectedPage permission="aems.foundation.view">

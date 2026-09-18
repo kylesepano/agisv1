@@ -24,7 +24,7 @@ const inputClass =
 
 function Card({ icon: Icon, title, children }) {
   return (
-    <section className="overflow-hidden rounded-md border border-[#73b6d6] bg-[#e3f1fc]/65">
+    <section className="relative overflow-visible rounded-md border border-[#73b6d6] bg-[#e3f1fc]/65">
       <header className="flex items-center gap-3 border-b border-[#73b6d6] bg-[#d5e9f8] px-5 py-3 text-[#10389a]">
         <Icon size={27} />
         <h3 className="text-lg font-semibold">{title}</h3>
@@ -76,6 +76,8 @@ export default function AemsEngagementCreatePage() {
   const navigate = useNavigate();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const engagementId = searchParams.get("engagementId");
+  const isEditing = Boolean(engagementId);
   const source = searchParams.get("source") === "unplanned" ? "unplanned" : "planned";
   const [sources, setSources] = useState([]);
   const [offices, setOffices] = useState([]);
@@ -83,6 +85,7 @@ export default function AemsEngagementCreatePage() {
   const [users, setUsers] = useState([]);
   const [masterLists, setMasterLists] = useState([]);
   const [selectedSourceId, setSelectedSourceId] = useState("");
+  const [existingEngagement, setExistingEngagement] = useState(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
@@ -104,6 +107,7 @@ export default function AemsEngagementCreatePage() {
     periodEnd: "",
     plannedStart: "",
     plannedEnd: "",
+    lockVersion: null,
   });
 
   useEffect(() => {
@@ -114,14 +118,38 @@ export default function AemsEngagementCreatePage() {
       auditAreaApi.list(),
       userApi.list(),
       masterListApi.list(),
+      isEditing ? aemsEngagementApi.show(engagementId) : Promise.resolve(null),
     ])
-      .then(([iapSources, officeRows, areaRows, people, lists]) => {
+      .then(([iapSources, officeRows, areaRows, people, lists, record]) => {
         if (!active) return;
         setSources(iapSources);
         setOffices(officeRows);
         setAreas(areaRows);
         setUsers(people);
         setMasterLists(lists);
+        if (record) {
+          setExistingEngagement(record);
+          setForm((current) => ({
+            ...current,
+            authorityType: record.specialAuthorityTypeCode ?? "WRITTEN_INSTRUCTION",
+            authorityReference: record.specialAuthorityReference ?? "",
+            directingAuthorityId: record.specialAuthorityApprovedBy ?? "",
+            requestingOfficeId: record.requestingOfficeId ?? "",
+            dateReceived: record.specialAuthorityReceivedDate ?? record.specialAuthorityDate ?? "",
+            title: record.title ?? "",
+            officeId: record.offices?.[0]?.id ?? record.engagementOfficeId ?? "",
+            auditTypeId: record.auditTypeId ?? "",
+            auditYear: String(record.auditYear ?? new Date().getFullYear()),
+            auditAreaIds: (record.auditAreas ?? []).map((area) => area.id),
+            auditFocusIds: (record.auditFocuses ?? []).map((focus) => focus.id),
+            objective: record.objectives ?? "",
+            periodStart: record.periodCoveredStartDate ?? "",
+            periodEnd: record.periodCoveredEndDate ?? "",
+            plannedStart: record.plannedStartDate ?? "",
+            plannedEnd: record.plannedEndDate ?? "",
+            lockVersion: record.lockVersion,
+          }));
+        }
       })
       .catch((reason) =>
         active && setErrors({ form: [reason.message || "Unable to load form options."] }),
@@ -130,12 +158,18 @@ export default function AemsEngagementCreatePage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [engagementId, isEditing]);
 
   const selected = useMemo(
     () => sources.find((item) => String(item.id) === String(selectedSourceId)),
     [selectedSourceId, sources],
   );
+  const selectedForDisplay = isEditing
+    ? {
+        ...existingEngagement,
+        plan: existingEngagement?.sourceSnapshot?.plan ?? {},
+      }
+    : selected;
   const auditTypes = listItems(masterLists, "IAP_ENGAGEMENT_TYPE");
   const duration = inclusiveDays(form.plannedStart, form.plannedEnd);
   const officeOptions = offices.map((office) => ({
@@ -238,7 +272,31 @@ export default function AemsEngagementCreatePage() {
     setErrors({});
     try {
       let engagement;
-      if (source === "planned") {
+      if (isEditing) {
+        engagement = await aemsEngagementApi.update(engagementId, {
+          title: form.title,
+          specialAuthorityReference: form.authorityReference,
+          specialAuthorityTypeCode: form.authorityType,
+          specialAuthorityClass: "SPECIAL",
+          specialAuthorityDate: form.dateReceived,
+          specialAuthorityReceivedDate: form.dateReceived,
+          specialAuthorityApprovedBy: form.directingAuthorityId || null,
+          requestingOfficeId: form.requestingOfficeId || null,
+          auditTypeId: form.auditTypeId || null,
+          auditYear: form.auditYear,
+          objectives: form.objective,
+          scope: "",
+          periodCoveredStartDate: form.periodStart || null,
+          periodCoveredEndDate: form.periodEnd || null,
+          plannedStartDate: form.plannedStart,
+          plannedEndDate: form.plannedEnd,
+          plannedPersonDays: Math.max(1, duration),
+          officeIds: form.officeId ? [form.officeId] : [],
+          auditAreaIds: form.auditAreaIds,
+          auditFocusIds: form.auditFocusIds,
+          lockVersion: form.lockVersion,
+        });
+      } else if (source === "planned") {
         if (!selectedSourceId) {
           setErrors({ iapPlanEngagementId: ["Select an approved IAP item."] });
           return;
@@ -280,9 +338,11 @@ export default function AemsEngagementCreatePage() {
         }
         engagement = await aemsEngagementApi.createSpecial(payload);
       }
-      toast.success(`${engagement.engagementCode} was created successfully.`);
+      toast.success(
+        `${engagement.engagementCode} was ${isEditing ? "updated" : "created successfully"}.`,
+      );
       navigate(
-        intent === "draft"
+        !isEditing && intent === "draft"
           ? "/audit-engagement-management"
           : `/audit-engagement-management/${engagement.id}`,
       );
@@ -301,14 +361,14 @@ export default function AemsEngagementCreatePage() {
     <main className="min-w-0 bg-[#eef7fa] px-5 py-5 text-[#10389a] sm:px-8">
       <div className="mb-5 text-sm text-sky-700">
         Home <span className="mx-2 text-slate-400">›</span> Audit Engagements{" "}
-        <span className="mx-2 text-slate-400">›</span> Create Audit Engagement
+        <span className="mx-2 text-slate-400">›</span> {isEditing ? "Edit Audit Engagement" : "Create Audit Engagement"}
       </div>
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-4">
             <h2 className="text-3xl font-semibold tracking-tight text-[#073b9b] sm:text-[2.35rem]">
-              Create Audit Engagement
+              {isEditing ? "Edit Audit Engagement" : "Create Audit Engagement"}
             </h2>
             <span className="text-sm text-red-500">
               [{source === "planned" ? "WF-SCR-200-02A" : "WF-SCR-200-02B"}]
@@ -320,8 +380,8 @@ export default function AemsEngagementCreatePage() {
         </div>
         <div className="flex flex-wrap gap-3">
           <button className="inline-flex h-11 items-center gap-2 rounded-md border border-slate-400 bg-white px-4 text-slate-700" onClick={() => navigate("/audit-engagement-management")} type="button"><ArrowLeft size={17} /> Back to AEM Workspace</button>
-          <button className="h-11 rounded-md border border-slate-400 bg-white px-5 text-slate-700 disabled:opacity-50" disabled={saving} onClick={() => submit("draft")} type="button">Save Draft</button>
-          <button className="h-11 rounded-md bg-[#087bea] px-6 font-semibold text-white disabled:opacity-50" disabled={saving || loading} onClick={() => submit("create")} type="button">{saving ? "Creating..." : "Create Audit Engagement"}</button>
+          <button className="h-11 rounded-md border border-slate-400 bg-white px-5 text-slate-700 disabled:opacity-50" disabled={saving} onClick={() => isEditing ? navigate(`/audit-engagement-management/${engagementId}`) : submit("draft")} type="button">{isEditing ? "Cancel" : "Save Draft"}</button>
+          <button className="h-11 rounded-md bg-[#087bea] px-6 font-semibold text-white disabled:opacity-50" disabled={saving || loading} onClick={() => submit("create")} type="button">{saving ? "Saving..." : isEditing ? "Save Changes" : "Create Audit Engagement"}</button>
           <button className="inline-flex h-11 items-center gap-2 rounded-md bg-[#198ff0] px-5 text-white" type="button">More Actions <ChevronDown size={16} /></button>
         </div>
       </div>
@@ -333,6 +393,7 @@ export default function AemsEngagementCreatePage() {
           <Card icon={Info} title="Engagement Source">
             <Field label="Engagement Source">
               <SearchableSelect
+                disabled={isEditing}
                 onChange={changeSource}
                 options={[
                   { value: "planned", label: "Internal Audit Planning (IAP)" },
@@ -350,8 +411,8 @@ export default function AemsEngagementCreatePage() {
                     {sources.map((item) => <option key={item.id} value={item.id}>{item.plan.planCode} — {item.engagementCode} — {item.title}</option>)}
                   </select>
                 </Field>
-                <Field label="Approved By"><input className={inputClass} disabled value={selected?.plan?.approvedBy?.name ?? ""} /></Field>
-                <Field label="Approval Date"><input className={inputClass} disabled value={dateLabel(selected?.plan?.approvedAt ?? "")} /></Field>
+                <Field label="Approved By"><input className={inputClass} disabled value={selectedForDisplay?.plan?.approvedBy?.name ?? ""} /></Field>
+                <Field label="Approval Date"><input className={inputClass} disabled value={dateLabel(selectedForDisplay?.plan?.approvedAt ?? "")} /></Field>
               </>
             ) : (
               <>
@@ -400,8 +461,8 @@ export default function AemsEngagementCreatePage() {
             <Field label="Audit Area(s)" error={errors.auditAreaIds?.[0]}>
               {source === "planned" ? (
                 <div className="flex min-h-10 flex-wrap gap-2 rounded border border-[#b7d1e5] bg-white p-2">
-                  {(selected?.auditAreas ?? []).map((area) => <span className="rounded bg-[#d7eafb] px-2 py-1 text-xs text-slate-700" key={area.id}>{area.name}</span>)}
-                  {!selected && <span className="text-sm text-slate-400">Select a plan reference</span>}
+                  {(selectedForDisplay?.auditAreas ?? []).map((area) => <span className="rounded bg-[#d7eafb] px-2 py-1 text-xs text-slate-700" key={area.id}>{area.name}</span>)}
+                  {!selectedForDisplay && <span className="text-sm text-slate-400">Select a plan reference</span>}
                 </div>
               ) : (
                 <SearchableSelect
@@ -418,9 +479,9 @@ export default function AemsEngagementCreatePage() {
             <Field label="Audit Focus(es)" error={errors.auditFocusIds?.[0]}>
               {source === "planned" ? (
                 <div className="flex min-h-10 flex-wrap gap-2 rounded border border-[#b7d1e5] bg-white p-2">
-                  {(selected?.auditFocuses ?? []).map((focus) => <span className="rounded bg-[#d7eafb] px-2 py-1 text-xs text-slate-700" key={focus.id}>{focus.name}</span>)}
-                  {!selected && <span className="text-sm text-slate-400">Select a plan reference</span>}
-                  {selected && selected.auditFocuses?.length === 0 && <span className="text-sm text-slate-400">No audit focus was defined in this IAP item</span>}
+                  {(selectedForDisplay?.auditFocuses ?? []).map((focus) => <span className="rounded bg-[#d7eafb] px-2 py-1 text-xs text-slate-700" key={focus.id}>{focus.name}</span>)}
+                  {!selectedForDisplay && <span className="text-sm text-slate-400">Select a plan reference</span>}
+                  {selectedForDisplay && selectedForDisplay.auditFocuses?.length === 0 && <span className="text-sm text-slate-400">No audit focus was defined in this IAP item</span>}
                 </div>
               ) : (
                 <SearchableSelect
@@ -434,29 +495,29 @@ export default function AemsEngagementCreatePage() {
                 />
               )}
             </Field>
-            <Field label="Initial Objective" error={errors.objectives?.[0]}><textarea className={`${inputClass} h-20 py-2`} disabled={source === "planned"} onChange={(event) => set("objective", event.target.value)} value={source === "planned" ? selected?.objectives ?? "" : form.objective} /></Field>
+            <Field label="Initial Objective" error={errors.objectives?.[0]}><textarea className={`${inputClass} h-20 py-2`} disabled={source === "planned"} onChange={(event) => set("objective", event.target.value)} value={source === "planned" ? selectedForDisplay?.objectives ?? "" : form.objective} /></Field>
             <Field label="Period Covered">
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("periodStart", event.target.value)} type="date" value={source === "planned" ? selected?.plan?.periodStart ?? "" : form.periodStart} /><span>to</span><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("periodEnd", event.target.value)} type="date" value={source === "planned" ? selected?.plan?.periodEnd ?? "" : form.periodEnd} /></div>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("periodStart", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plan?.periodStart ?? selectedForDisplay?.periodCoveredStartDate ?? "" : form.periodStart} /><span>to</span><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("periodEnd", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plan?.periodEnd ?? selectedForDisplay?.periodCoveredEndDate ?? "" : form.periodEnd} /></div>
             </Field>
           </Card>
 
           <Card icon={CalendarDays} title="Initial Schedule">
             <Field label="Start & End Date" error={errors.plannedStartDate?.[0] ?? errors.plannedEndDate?.[0]}>
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("plannedStart", event.target.value)} type="date" value={source === "planned" ? selected?.plannedStartDate ?? "" : form.plannedStart} /><span>to</span><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("plannedEnd", event.target.value)} type="date" value={source === "planned" ? selected?.plannedEndDate ?? "" : form.plannedEnd} /></div>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("plannedStart", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plannedStartDate ?? "" : form.plannedStart} /><span>to</span><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("plannedEnd", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plannedEndDate ?? "" : form.plannedEnd} /></div>
             </Field>
-            <Field label="Planned Duration"><input className={inputClass} disabled value={`${source === "planned" ? inclusiveDays(selected?.plannedStartDate, selected?.plannedEndDate) : duration || 0} days`} /></Field>
+            <Field label="Planned Duration"><input className={inputClass} disabled value={`${source === "planned" ? inclusiveDays(selectedForDisplay?.plannedStartDate, selectedForDisplay?.plannedEndDate) : duration || 0} days`} /></Field>
           </Card>
         </div>
 
         <Card icon={ShieldCheck} title="Engagement Identity">
-          <Field label="Engagement Title" error={errors.title?.[0]}><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("title", event.target.value)} value={source === "planned" ? selected?.title ?? "" : form.title} /></Field>
+          <Field label="Engagement Title" error={errors.title?.[0]}><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("title", event.target.value)} value={source === "planned" ? selectedForDisplay?.title ?? "" : form.title} /></Field>
           <Field label="Office" error={errors.officeIds?.[0]}>
-            {source === "planned" ? <input className={inputClass} disabled value={selected?.offices?.[0]?.name ?? ""} /> : <SearchableSelect onChange={changeOffice} options={officeOptions} placeholder="Select engagement office" value={form.officeId} />}
+            {source === "planned" ? <input className={inputClass} disabled value={selectedForDisplay?.offices?.[0]?.name ?? ""} /> : <SearchableSelect onChange={changeOffice} options={officeOptions} placeholder="Select engagement office" value={form.officeId} />}
           </Field>
           <Field label="Audit Type" error={errors.auditTypeId?.[0]}>
-            {source === "planned" ? <input className={inputClass} disabled value={selected?.auditType?.label ?? ""} /> : <SearchableSelect onChange={(value) => set("auditTypeId", value)} options={auditTypes.map((item) => ({ value: item.id, label: item.label, description: item.code, keywords: `${item.code ?? ""} ${item.label}` }))} placeholder="Select audit type" value={form.auditTypeId} />}
+            {source === "planned" ? <input className={inputClass} disabled value={selectedForDisplay?.auditType?.label ?? ""} /> : <SearchableSelect onChange={(value) => set("auditTypeId", value)} options={auditTypes.map((item) => ({ value: item.id, label: item.label, description: item.code, keywords: `${item.code ?? ""} ${item.label}` }))} placeholder="Select audit type" value={form.auditTypeId} />}
           </Field>
-          <Field label="Audit Year"><input className={inputClass} disabled={source === "planned"} max="2200" min="2000" onChange={(event) => set("auditYear", event.target.value)} type="number" value={source === "planned" ? selected?.plan?.fiscalYear ?? "" : form.auditYear} /></Field>
+          <Field label="Audit Year"><input className={inputClass} disabled={source === "planned"} max="2200" min="2000" onChange={(event) => set("auditYear", event.target.value)} type="number" value={source === "planned" ? selectedForDisplay?.plan?.fiscalYear ?? selectedForDisplay?.auditYear ?? "" : form.auditYear} /></Field>
         </Card>
       </div>
     </main>
