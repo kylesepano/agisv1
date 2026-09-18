@@ -14,7 +14,7 @@ These rules apply to every module and workflow added to AGIS.
 
 ## Module source organization
 
-- Keep frontend pages under `src/pages/<module>/` and backend models under
+- Keep frontend pages under `frontend/src/pages/<module>/` and backend models under
   `backend/app/Models/<Module>/` using the module names Core, Iap, Aems, Cms,
   Armis, and Ais.
 - Keep backend services under `backend/app/Services/<Module>/`. Shared platform

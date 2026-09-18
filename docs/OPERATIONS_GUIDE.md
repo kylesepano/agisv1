@@ -49,7 +49,7 @@ it without a migration plan makes existing encrypted SMTP credentials unreadable
 From the project root:
 
 ```powershell
-npm.cmd install
+npm.cmd install --prefix frontend
 composer install --working-dir=backend
 ```
 
@@ -120,10 +120,12 @@ Back up:
 Use two terminals from the repository root:
 
 ```powershell
+cd frontend
 npm.cmd run api
 ```
 
 ```powershell
+cd frontend
 npm.cmd run dev
 ```
 
@@ -185,10 +187,11 @@ remain the authoritative delivery channel.
 Required checks before handoff:
 
 ```powershell
+cd frontend
 npm.cmd run lint
 npm.cmd run build
 
-cd backend
+cd ../backend
 php artisan test --testsuite=Feature
 php artisan route:list
 php artisan migrate:status

@@ -84,9 +84,9 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            // Render exposes its internal connection string as DATABASE_URL.
-            // DB_URL and the individual DB_* variables remain supported for
-            // local development and existing environments.
+            // Supabase and other managed PostgreSQL providers can expose their
+            // connection string as DATABASE_URL. Individual DB_* variables
+            // remain supported for local development.
             'url' => env('DATABASE_URL', env('DB_URL')),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
@@ -97,7 +97,7 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => 'prefer',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
         'sqlsrv' => [

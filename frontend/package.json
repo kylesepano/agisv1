@@ -1,17 +1,18 @@
 {
-  "name": "agis-test",
+  "name": "agis-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "api": "php backend/artisan serve --host=127.0.0.1 --port=8000",
+    "api": "php ../backend/artisan serve --host=127.0.0.1 --port=8000",
     "build": "vite build",
+    "build:manual": "node scripts/build-aems-manual.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "test:api": "php backend/artisan test",
-    "format:api": "php backend/vendor/bin/pint"
+    "test:api": "php ../backend/artisan test",
+    "format:api": "php ../backend/vendor/bin/pint"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

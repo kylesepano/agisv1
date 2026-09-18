@@ -125,14 +125,14 @@ Documentation is part of the definition of done. A behavior change must update:
 
 Use current code and tests as the implementation source of truth:
 
-- frontend routes: `src/App.jsx`;
-- navigation and permissions: `src/config/navigation.js`;
-- API client: `src/services/api.js`;
+- frontend routes: `frontend/src/App.jsx`;
+- navigation and permissions: `frontend/src/config/navigation.js`;
+- API client: `frontend/src/services/api.js`;
 - backend routes: `backend/routes/api.php`;
 - business rules: `backend/app/Services` and Form Requests;
 - persistence: `backend/app/Models` and `backend/database/migrations`;
 - defaults: `backend/database/seeders`;
-- verification: `backend/tests/Feature` and `tests/e2e`.
+- verification: `backend/tests/Feature` and `frontend/tests/e2e`.
 
 ## Verification and checkpoint history
 

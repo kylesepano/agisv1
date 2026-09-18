@@ -1,6 +1,10 @@
 # AGIS — Audit Governance Information System
 
-AGIS uses a React 19 + Vite frontend styled with Tailwind CSS, Lucide React icons, Recharts dashboard visualizations, React Router for page URLs, and a Laravel 12 API backed by PostgreSQL. Authentication uses Laravel Sanctum's first-party SPA cookie sessions; passwords and permissions are verified by the backend and are no longer stored in browser storage.
+AGIS uses a React 19 + Vite frontend in `frontend/` and a Laravel 12 API in
+`backend/`, backed by PostgreSQL. The production layout targets Vercel for the
+frontend, Render for the API, and Supabase for PostgreSQL. Authentication uses
+Laravel Sanctum's first-party SPA cookie sessions; passwords and permissions
+are verified by the backend and are never stored in browser storage.
 
 For a feature-by-feature comparison of the current implementation, start with
 the [As-Built Feature Catalog](docs/AS_BUILT_FEATURE_CATALOG.md). The complete
@@ -55,10 +59,12 @@ php backend/artisan migrate:fresh --seed
 Use two terminals from the repository root:
 
 ```powershell
+cd frontend
 npm run api
 ```
 
 ```powershell
+cd frontend
 npm run dev
 ```
 
@@ -66,11 +72,12 @@ Vite proxies `/api` and `/sanctum` to `http://127.0.0.1:8000`, keeping Sanctum a
 
 ## Frontend routes and permissions
 
-Public authentication uses `/login`; authenticated users start at `/dashboard`. Each module has its own URL, including `/office-registry`, `/internal-audit-planning`, `/audit-engagement-management`, `/audit-findings-recommendations`, and the remaining registry and administration pages defined in `src/config/navigation.js`.
+Public authentication uses `/login`; authenticated users start at `/dashboard`. Each module has its own URL, including `/office-registry`, `/internal-audit-planning`, `/audit-engagement-management`, `/audit-findings-recommendations`, and the remaining registry and administration pages defined in `frontend/src/config/navigation.js`.
 
 The sidebar and dashboard cards only show routes allowed by the authenticated user's permission list. Typing a disallowed URL directly redirects to `/unauthorized`. This frontend guard improves navigation, but every future module API must also use Laravel's `auth:sanctum` and `permission` middleware.
 
-The production build includes `public/.htaccess`, which sends unknown Apache paths back to `index.html` so routed pages continue to work after a browser refresh.
+The Vercel configuration in `frontend/vercel.json` sends browser routes back to
+`index.html`, so React Router pages continue to work after a refresh.
 
 ## Demo accounts
 
@@ -90,6 +97,7 @@ Change these through `backend/.env` before seeding any shared environment.
 ## Verification
 
 ```powershell
+cd frontend
 npm run lint
 npm run build
 npm run test:api
@@ -181,14 +189,15 @@ reference data, documents, logs, runtime configuration, and document numbering.
 - `docs/AEMS_WORKFLOW_DESIGN.md` — approved AEMS workflow design baseline
 - `docs/API_AND_DATA_REFERENCE.md` — API and entity reference
 - `docs/OPERATIONS_GUIDE.md` — setup, deployment, backup, and troubleshooting
+- `docs/RENDER_DEPLOYMENT.md` — Vercel, Render, and Supabase deployment guide
 - `docs/DEVELOPMENT_STANDARDS.md` — required security, privacy, quality, and operations rules
 
 ## Architecture
 
-- `src/` — React Router interface styled with Tailwind CSS
-- `src/config/navigation.js` — route, navigation, and permission map
+- `frontend/src/` — React Router interface styled with Tailwind CSS
+- `frontend/src/config/navigation.js` — route, navigation, and permission map
 - `lucide-react` — tree-shakable interface icons; navigation stores icon components directly
-- `src/services/api.js` — same-origin Sanctum/API client
+- `frontend/src/services/api.js` — configurable Sanctum/API client
 - `backend/app/` — Laravel controllers, requests, middleware, resources, and models
 - `backend/database/migrations/` — PostgreSQL-compatible schema
 - `backend/database/seeders/` — roles, permissions, offices, and demo accounts

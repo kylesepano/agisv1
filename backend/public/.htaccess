@@ -18,16 +18,11 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Laravel API, Sanctum, and health routes must never be handled by the
-    # React fallback. They continue through Laravel's front controller.
-    RewriteRule ^(?:api|sanctum)(?:/.*)?$ index.php [L]
-    RewriteRule ^(?:health|up)$ index.php [L]
-
-    # Existing files (including the Vite build and protected PHP entry point)
-    # are served normally. Other browser paths are React Router routes.
+    # Send every non-file request to Laravel's front controller. The React SPA
+    # is deployed independently from frontend/ and is not copied here.
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.html [L]
+    RewriteRule ^ index.php [L]
 </IfModule>
 
-DirectoryIndex index.html index.php
+DirectoryIndex index.php

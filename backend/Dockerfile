@@ -1,20 +1,7 @@
-# AGIS Render Free image: React is compiled once, then served by Apache with
-# Laravel from the same origin.
-
-FROM node:22-bookworm AS frontend
-
-WORKDIR /build
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY . .
-ARG VITE_API_BASE_URL=/api
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
-RUN npm run build
-
 FROM composer:2.8 AS vendor
 
 WORKDIR /app
-COPY backend/composer.json backend/composer.lock ./
+COPY composer.json composer.lock ./
 RUN composer install \
     --no-dev \
     --no-interaction \
@@ -22,7 +9,7 @@ RUN composer install \
     --prefer-dist \
     --optimize-autoloader \
     --no-scripts
-COPY backend/ ./
+COPY . ./
 RUN composer dump-autoload --no-dev --optimize --classmap-authoritative --no-scripts
 
 FROM php:8.3-apache
@@ -37,7 +24,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=vendor /app/ /var/www/html/
-COPY --from=frontend /build/dist/ /var/www/html/public/
 COPY docker/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/render-start.sh /usr/local/bin/render-start
 

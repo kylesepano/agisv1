@@ -13,12 +13,13 @@ import {
   aemsDocumentIndexApi,
   aemsEngagementApi,
   aemsReportApi,
+  apiPath,
 } from "../../services/api";
 import RegistryHeader from "../../components/ui/RegistryHeader";
 import SummaryCard from "../../components/ui/SummaryCard";
 
 async function downloadUrl(url, fallbackName) {
-  const response = await fetch(url, {
+  const response = await fetch(apiPath(url), {
     credentials: "include",
     headers: { Accept: "text/csv", "X-Requested-With": "XMLHttpRequest" },
   });

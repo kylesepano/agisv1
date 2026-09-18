@@ -4,16 +4,29 @@ const JSON_HEADERS = {
   "X-Requested-With": "XMLHttpRequest",
 };
 
-// Production uses the same Render origin, so the default remains the relative
-// `/api` path. A non-default value is available for explicitly configured
-// environments without hard-coding a deployment hostname.
+// Local development uses Vite's same-origin proxy. A Vercel deployment sets
+// this to the Render API URL, for example https://api.example.com/api.
 const baseURL = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
+const serviceOrigin = /^https?:\/\//i.test(baseURL)
+  ? new URL(baseURL).origin
+  : "";
 
-function apiPath(path) {
-  return path.startsWith("/api")
-    ? `${baseURL}${path.slice("/api".length)}`
-    : path;
+export function apiPath(path) {
+  if (path.startsWith("/api")) {
+    return `${baseURL}${path.slice("/api".length)}`;
+  }
+
+  if (path.startsWith("/sanctum")) {
+    return `${serviceOrigin}${path}`;
+  }
+
+  return path;
 }
+
+// Keep every API and protected-download call on the configured backend,
+// including older service methods that pass a relative /api URL directly.
+const fetch = (input, init) =>
+  window.fetch(typeof input === "string" ? apiPath(input) : input, init);
 
 export class ApiError extends Error {
   constructor(message, { status = 0, errors = {} } = {}) {
@@ -125,7 +138,7 @@ async function request(path, { method = "GET", body, csrf = false } = {}) {
   let response;
 
   try {
-    response = await fetch(apiPath(path), {
+    response = await fetch(path, {
       method,
       credentials: "include",
       headers,

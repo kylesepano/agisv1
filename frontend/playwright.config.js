@@ -41,7 +41,7 @@ export default defineConfig({
   webServer: [
     {
       command: `php artisan serve --host=127.0.0.1 --port=${backendPort}`,
-      cwd: "./backend",
+      cwd: "../backend",
       env: {
         ...env,
         APP_ENV: "testing",

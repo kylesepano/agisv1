@@ -7,6 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $backendRoot = Join-Path $repositoryRoot 'backend'
+$frontendRoot = Join-Path $repositoryRoot 'frontend'
 
 Push-Location $backendRoot
 try {
@@ -26,7 +27,7 @@ finally {
 }
 
 if (-not $SkipFrontend) {
-    Push-Location $repositoryRoot
+    Push-Location $frontendRoot
     try {
         npm.cmd run lint
         npm.cmd run build
@@ -37,7 +38,7 @@ if (-not $SkipFrontend) {
 }
 
 if (-not $SkipPlaywright) {
-    Push-Location $repositoryRoot
+    Push-Location $frontendRoot
     try {
         npx.cmd playwright test tests/e2e/aems-g9-conformance.spec.js tests/e2e/aems-g10e-final-acceptance.spec.js --project desktop-chrome --project mobile-chrome
     }

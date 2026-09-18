@@ -39,10 +39,10 @@ class ArmisDeploymentHardeningTest extends TestCase
 
     public function test_render_startup_and_apache_keep_migrations_and_private_downloads_hardened(): void
     {
-        $root = dirname(base_path());
-        $startup = (string) file_get_contents($root.'/docker/render-start.sh');
-        $apache = (string) file_get_contents($root.'/docker/apache-vhost.conf');
-        $smoke = (string) file_get_contents($root.'/scripts/verify-armis-render.ps1');
+        $repositoryRoot = dirname(base_path());
+        $startup = (string) file_get_contents(base_path('docker/render-start.sh'));
+        $apache = (string) file_get_contents(base_path('docker/apache-vhost.conf'));
+        $smoke = (string) file_get_contents($repositoryRoot.'/scripts/verify-armis-render.ps1');
 
         $this->assertStringContainsString('php artisan migrate --force', $startup);
         $this->assertStringNotContainsString('migrate:fresh', $startup);

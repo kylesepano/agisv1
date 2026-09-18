@@ -16,7 +16,8 @@ Use the actual test date for **T** and calculate relative dates as instructed. T
 Regenerate the PDF, HTML and CSV fixtures from the repository root:
 
 ```powershell
-node scripts/build-aems-manual.mjs
+cd frontend
+npm run build:manual
 ```
 
 The generator uses the repository's Playwright dependency and installed Microsoft Edge. It does not create audit records or modify the application database. Preview PNGs are documentation review artifacts.

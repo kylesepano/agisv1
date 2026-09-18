@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const dir = path.join(root, 'docs', 'testing');
 const fixtureDir = path.join(dir, 'fixtures');
 await fs.mkdir(fixtureDir, {recursive:true});
