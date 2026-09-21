@@ -7,7 +7,7 @@ import {
   ShieldCheck,
   Target,
 } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import {
   aemsEngagementApi,
   ApiError,
@@ -22,9 +22,9 @@ import { useToast } from "../../ui/toast-context";
 const inputClass =
   "h-10 w-full rounded border border-[#b7d1e5] bg-white px-3 text-sm text-slate-700 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:bg-[#eaf3fa] disabled:text-slate-500";
 
-function Card({ icon: Icon, title, children }) {
+function Card({ icon: Icon, title, children, className = "" }) {
   return (
-    <section className="relative overflow-visible rounded-md border border-[#73b6d6] bg-[#e3f1fc]/65">
+    <section className={`relative overflow-visible rounded-md border border-[#73b6d6] bg-[#e3f1fc]/65 ${className}`}>
       <header className="flex items-center gap-3 border-b border-[#73b6d6] bg-[#d5e9f8] px-5 py-3 text-[#10389a]">
         <Icon size={27} />
         <h3 className="text-lg font-semibold">{title}</h3>
@@ -37,7 +37,7 @@ function Card({ icon: Icon, title, children }) {
 function Field({ label, children, error }) {
   return (
     <label className="grid min-w-0 gap-2 text-sm text-[#123890] sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:items-center">
-      <span className="text-right">{label}</span>
+      <span className="text-left sm:text-right">{label}</span>
       <span className="min-w-0">
         {children}
         {error && <small className="mt-1 block text-red-600">{error}</small>}
@@ -357,10 +357,26 @@ export default function AemsEngagementCreatePage() {
     }
   }
 
+  if (loading) {
+    return (
+      <main className="grid min-h-[60vh] place-items-center bg-[#eef7fa] px-5 py-8 text-[#10389a]">
+        <section className="w-full max-w-md rounded-xl border border-[#73b6d6] bg-white px-8 py-10 text-center shadow-sm">
+          <span className="mx-auto mb-5 block h-11 w-11 animate-spin rounded-full border-[3px] border-sky-100 border-t-[#087bea]" />
+          <h2 className="text-xl font-semibold">
+            {isEditing ? "Loading engagement for editing" : "Loading audit engagement form"}
+          </h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Retrieving the engagement details and available selections…
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="min-w-0 bg-[#eef7fa] px-5 py-5 text-[#10389a] sm:px-8">
       <div className="mb-5 text-sm text-sky-700">
-        Home <span className="mx-2 text-slate-400">›</span> Audit Engagements{" "}
+        <Link className="hover:text-sky-900 hover:underline" to="/dashboard">Home</Link> <span className="mx-2 text-slate-400">›</span> <Link className="hover:text-sky-900 hover:underline" to="/audit-engagement-management">Audit Engagements</Link>{" "}
         <span className="mx-2 text-slate-400">›</span> {isEditing ? "Edit Audit Engagement" : "Create Audit Engagement"}
       </div>
 
@@ -389,7 +405,7 @@ export default function AemsEngagementCreatePage() {
       {errors.form?.[0] && <div className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{errors.form[0]}</div>}
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(32rem,1.25fr)_minmax(27rem,1fr)]">
-        <div className="space-y-5">
+        <div className="contents xl:block xl:space-y-5">
           <Card icon={Info} title="Engagement Source">
             <Field label="Engagement Source">
               <SearchableSelect
@@ -457,7 +473,7 @@ export default function AemsEngagementCreatePage() {
             )}
           </Card>
 
-          <Card icon={Target} title="Initial Scope">
+          <Card className="order-2 xl:order-none" icon={Target} title="Initial Scope">
             <Field label="Audit Area(s)" error={errors.auditAreaIds?.[0]}>
               {source === "planned" ? (
                 <div className="flex min-h-10 flex-wrap gap-2 rounded border border-[#b7d1e5] bg-white p-2">
@@ -501,7 +517,7 @@ export default function AemsEngagementCreatePage() {
             </Field>
           </Card>
 
-          <Card icon={CalendarDays} title="Initial Schedule">
+          <Card className="order-2 xl:order-none" icon={CalendarDays} title="Initial Schedule">
             <Field label="Start & End Date" error={errors.plannedStartDate?.[0] ?? errors.plannedEndDate?.[0]}>
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("plannedStart", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plannedStartDate ?? "" : form.plannedStart} /><span>to</span><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("plannedEnd", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plannedEndDate ?? "" : form.plannedEnd} /></div>
             </Field>
@@ -509,7 +525,7 @@ export default function AemsEngagementCreatePage() {
           </Card>
         </div>
 
-        <Card icon={ShieldCheck} title="Engagement Identity">
+        <Card className="order-1 xl:order-none" icon={ShieldCheck} title="Engagement Identity">
           <Field label="Engagement Title" error={errors.title?.[0]}><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("title", event.target.value)} value={source === "planned" ? selectedForDisplay?.title ?? "" : form.title} /></Field>
           <Field label="Office" error={errors.officeIds?.[0]}>
             {source === "planned" ? <input className={inputClass} disabled value={selectedForDisplay?.offices?.[0]?.name ?? ""} /> : <SearchableSelect onChange={changeOffice} options={officeOptions} placeholder="Select engagement office" value={form.officeId} />}

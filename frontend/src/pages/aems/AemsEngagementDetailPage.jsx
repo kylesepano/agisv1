@@ -15,7 +15,7 @@ import {
   Target,
   TriangleAlert,
 } from "lucide-react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import useRecordView from "../../hooks/useRecordView";
 import { aemsEngagementApi } from "../../services/api";
 
@@ -168,7 +168,14 @@ export default function AemsEngagementDetailPage() {
 
   return (
     <main className="min-w-0 bg-[#eef7fa] px-5 py-5 text-[#10389a] sm:px-8">
-      <div className="mb-4 text-sm text-sky-700">
+      <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-2 text-sm text-sky-700">
+        <Link className="hover:text-sky-900 hover:underline" to="/dashboard">Home</Link>
+        <span className="text-slate-400">›</span>
+        <Link className="hover:text-sky-900 hover:underline" to="/audit-engagement-management">Audit Engagements</Link>
+        <span className="text-slate-400">›</span>
+        <span aria-current="page">Audit Engagement Details</span>
+      </nav>
+      <div className="hidden">
         Home <span className="mx-2 text-slate-400">›</span> Audit Engagements{" "}
         <span className="mx-2 text-slate-400">›</span> Audit Engagement Details
       </div>

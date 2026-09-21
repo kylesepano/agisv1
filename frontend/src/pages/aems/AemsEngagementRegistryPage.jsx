@@ -8,7 +8,7 @@ import {
   Plus,
   Search,
 } from "lucide-react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useAuth } from "../../auth/auth-context";
 import { hasPermission } from "../../config/navigation";
 import { aemsEngagementApi } from "../../services/api";
@@ -175,7 +175,7 @@ export default function AemsEngagementRegistryPage() {
   return (
     <main className="min-w-0 bg-[#eef7fa] px-5 py-5 text-[#0c318d] sm:px-8">
       <div className="mb-5 text-sm text-sky-700">
-        <span>Home</span>
+        <Link className="hover:text-sky-900 hover:underline" to="/dashboard">Home</Link>
         <span className="mx-2 text-slate-400">›</span>
         <span>Audit Engagements Workspace</span>
       </div>
