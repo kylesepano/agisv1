@@ -13,6 +13,7 @@ import {
   aemsEngagementApi,
   ApiError,
   auditAreaApi,
+  armisApi,
   masterListApi,
   officeApi,
   userApi,
@@ -84,6 +85,7 @@ export default function AemsEngagementCreatePage() {
   const [offices, setOffices] = useState([]);
   const [areas, setAreas] = useState([]);
   const [users, setUsers] = useState([]);
+  const [armisResources, setArmisResources] = useState([]);
   const [masterLists, setMasterLists] = useState([]);
   const [selectedSourceId, setSelectedSourceId] = useState("");
   const [existingEngagement, setExistingEngagement] = useState(null);
@@ -102,7 +104,6 @@ export default function AemsEngagementCreatePage() {
     auditTypeId: "",
     auditYear: String(new Date().getFullYear()),
     auditAreaIds: [],
-    auditFocusIds: [],
     objective: "",
     periodStart: "",
     periodEnd: "",
@@ -114,6 +115,7 @@ export default function AemsEngagementCreatePage() {
     teamLeaderId: "",
     teamMemberIds: [],
     supportStaffIds: [],
+    aeoDocument: null,
     lockVersion: null,
   });
 
@@ -124,15 +126,17 @@ export default function AemsEngagementCreatePage() {
       officeApi.list(),
       auditAreaApi.list(),
       userApi.list(),
+      armisApi.getResources({ includeArchived: false }),
       masterListApi.list(),
       isEditing ? aemsEngagementApi.show(engagementId) : Promise.resolve(null),
     ])
-      .then(([iapSources, officeRows, areaRows, people, lists, record]) => {
+      .then(([iapSources, officeRows, areaRows, people, armisRows, lists, record]) => {
         if (!active) return;
         setSources(iapSources);
         setOffices(officeRows);
         setAreas(areaRows);
         setUsers(people);
+        setArmisResources(armisRows.filter((resource) => resource.status === "ACTIVE"));
         setMasterLists(lists);
         if (record) {
           setExistingEngagement(record);
@@ -148,7 +152,6 @@ export default function AemsEngagementCreatePage() {
             auditTypeId: record.auditTypeId ?? "",
             auditYear: String(record.auditYear ?? new Date().getFullYear()),
             auditAreaIds: (record.auditAreas ?? []).map((area) => area.id),
-            auditFocusIds: (record.auditFocuses ?? []).map((focus) => focus.id),
             objective: record.objectives ?? "",
             periodStart: record.periodCoveredStartDate ?? "",
             periodEnd: record.periodCoveredEndDate ?? "",
@@ -205,37 +208,20 @@ export default function AemsEngagementCreatePage() {
         : [],
     [areas, form.officeId],
   );
-  const selectableFocuses = useMemo(
-    () =>
-      selectableAreas
-        .filter((area) =>
-          form.auditAreaIds.some((id) => String(id) === String(area.id)),
-        )
-        .flatMap((area) =>
-          (area.focuses ?? []).filter(
-            (focus) => focus.isActive && !focus.isArchived,
-          ),
-        ),
-    [form.auditAreaIds, selectableAreas],
-  );
   const areaOptions = selectableAreas.map((area) => ({
     value: area.id,
     label: area.name,
     description: area.code,
     keywords: `${area.code ?? ""} ${area.name}`,
   }));
-  const focusOptions = selectableFocuses.map((focus) => ({
-    value: focus.id,
-    label: focus.name,
-    description: focus.code,
-    keywords: `${focus.code ?? ""} ${focus.name}`,
-  }));
-  const userOptions = users.map((person) => ({
-    value: person.id,
-    label: person.name,
-    description: person.employeeId,
-    keywords: `${person.employeeId ?? ""} ${person.name}`,
-  }));
+  const armisAuditorOptions = armisResources
+    .filter((resource) => resource.category === "AUDIT_RESOURCE" && resource.user?.isActive)
+    .map((resource) => ({ value: resource.userId, label: resource.user.name, description: resource.resourceCode, keywords: `${resource.resourceCode} ${resource.user.name}` }));
+  const selectedAuditorIds = [form.teamLeaderId, ...form.teamMemberIds].filter(Boolean).map(String);
+  const supportStaffOptions = armisResources
+    .filter((resource) => resource.user?.isActive && !selectedAuditorIds.includes(String(resource.userId)))
+    .map((resource) => ({ value: resource.userId, label: resource.user.name, description: resource.resourceCode, keywords: `${resource.resourceCode} ${resource.user.name}` }));
+  const ciasHead = users.find((person) => /cias.*head|head.*cias/i.test(`${person.position ?? ""} ${person.name ?? ""}`));
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
   function changeSource(next) {
@@ -257,33 +243,12 @@ export default function AemsEngagementCreatePage() {
       const auditAreaIds = current.auditAreaIds.filter((id) =>
         availableAreaIds.has(String(id)),
       );
-      const auditFocusIds = current.auditFocusIds.filter((focusId) =>
-        areas.some(
-          (area) =>
-            auditAreaIds.some((areaId) => String(areaId) === String(area.id)) &&
-            area.focuses?.some(
-              (focus) => String(focus.id) === String(focusId),
-            ),
-        ),
-      );
-      return { ...current, officeId, auditAreaIds, auditFocusIds };
+      return { ...current, officeId, auditAreaIds };
     });
   }
 
   function changeAuditAreas(auditAreaIds) {
-    setForm((current) => ({
-      ...current,
-      auditAreaIds,
-      auditFocusIds: current.auditFocusIds.filter((focusId) =>
-        areas.some(
-          (area) =>
-            auditAreaIds.some((areaId) => String(areaId) === String(area.id)) &&
-            area.focuses?.some(
-              (focus) => String(focus.id) === String(focusId),
-            ),
-        ),
-      ),
-    }));
+    setForm((current) => ({ ...current, auditAreaIds }));
   }
 
   async function submit(intent) {
@@ -312,7 +277,6 @@ export default function AemsEngagementCreatePage() {
           plannedPersonDays: Math.max(1, duration),
           officeIds: form.officeId ? [form.officeId] : [],
           auditAreaIds: form.auditAreaIds,
-          auditFocusIds: form.auditFocusIds,
           initialTeamPlan: {
             aeoReference: form.aeoReference || null,
             aeoDate: form.aeoDate || null,
@@ -367,7 +331,6 @@ export default function AemsEngagementCreatePage() {
         });
         if (form.officeId) payload.append("officeIds[]", form.officeId);
         form.auditAreaIds.forEach((id) => payload.append("auditAreaIds[]", id));
-        form.auditFocusIds.forEach((id) => payload.append("auditFocusIds[]", id));
         if (form.aeoReference) payload.append("initialTeamPlan[aeoReference]", form.aeoReference);
         if (form.aeoDate) payload.append("initialTeamPlan[aeoDate]", form.aeoDate);
         if (form.departmentHeadId) payload.append("initialTeamPlan[departmentHeadId]", form.departmentHeadId);
@@ -377,6 +340,7 @@ export default function AemsEngagementCreatePage() {
         if (form.supportingDocument) {
           payload.append("supportingDocument", form.supportingDocument);
         }
+        if (form.aeoDocument) payload.append("aeoDocument", form.aeoDocument);
         engagement = await aemsEngagementApi.createSpecial(payload);
       }
       toast.success(
@@ -415,7 +379,7 @@ export default function AemsEngagementCreatePage() {
   }
 
   return (
-    <main className="min-w-0 bg-[#eef7fa] px-5 py-5 text-[#10389a] sm:px-8">
+    <main className="mx-auto min-w-0 max-w-[1750px] bg-[#eef7fa] px-5 py-5 text-[#10389a] sm:px-8">
       <div className="mb-5 text-sm text-sky-700">
         <Link className="hover:text-sky-900 hover:underline" to="/dashboard">Home</Link> <span className="mx-2 text-slate-400">›</span> <Link className="hover:text-sky-900 hover:underline" to="/audit-engagement-management">Audit Engagements</Link>{" "}
         <span className="mx-2 text-slate-400">›</span> {isEditing ? "Edit Audit Engagement" : "Create Audit Engagement"}
@@ -445,9 +409,9 @@ export default function AemsEngagementCreatePage() {
 
       {errors.form?.[0] && <div className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{errors.form[0]}</div>}
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(32rem,1.25fr)_minmax(27rem,1fr)]">
-        <div className="contents xl:block xl:space-y-5">
-          <Card icon={Info} title="Engagement Source">
+      <div className="grid items-start gap-5 xl:grid-cols-2">
+        <div className="contents">
+          <Card className="xl:col-start-1 xl:row-start-1" icon={Info} title="Engagement Source & Authorization">
             <Field label="Engagement Source">
               <SearchableSelect
                 disabled={isEditing}
@@ -514,7 +478,7 @@ export default function AemsEngagementCreatePage() {
             )}
           </Card>
 
-          <Card className="order-2 xl:order-none" icon={Target} title="Initial Scope">
+          <Card className="order-2 xl:col-start-1 xl:row-start-2 xl:order-none" icon={Target} title="Initial Engagement Direction">
             <Field label="Audit Area(s)" error={errors.auditAreaIds?.[0]}>
               {source === "planned" ? (
                 <div className="flex min-h-10 flex-wrap gap-2 rounded border border-[#b7d1e5] bg-white p-2">
@@ -533,40 +497,23 @@ export default function AemsEngagementCreatePage() {
                 />
               )}
             </Field>
-            <Field label="Audit Focus(es)" error={errors.auditFocusIds?.[0]}>
-              {source === "planned" ? (
-                <div className="flex min-h-10 flex-wrap gap-2 rounded border border-[#b7d1e5] bg-white p-2">
-                  {(selectedForDisplay?.auditFocuses ?? []).map((focus) => <span className="rounded bg-[#d7eafb] px-2 py-1 text-xs text-slate-700" key={focus.id}>{focus.name}</span>)}
-                  {!selectedForDisplay && <span className="text-sm text-slate-400">Select a plan reference</span>}
-                  {selectedForDisplay && selectedForDisplay.auditFocuses?.length === 0 && <span className="text-sm text-slate-400">No audit focus was defined in this IAP item</span>}
-                </div>
-              ) : (
-                <SearchableSelect
-                  disabled={form.auditAreaIds.length === 0}
-                  emptyMessage="No audit focuses are available for the selected audit area(s)."
-                  multiple
-                  onChange={(value) => set("auditFocusIds", value)}
-                  options={focusOptions}
-                  placeholder={form.auditAreaIds.length ? "Search and select audit focus(es)" : "Select audit area(s) first"}
-                  value={form.auditFocusIds}
-                />
-              )}
-            </Field>
             <Field label="Initial Objective" error={errors.objectives?.[0]}><textarea className={`${inputClass} h-20 py-2`} disabled={source === "planned"} onChange={(event) => set("objective", event.target.value)} value={source === "planned" ? selectedForDisplay?.objectives ?? "" : form.objective} /></Field>
             <Field label="Period Covered">
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("periodStart", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plan?.periodStart ?? selectedForDisplay?.periodCoveredStartDate ?? "" : form.periodStart} /><span>to</span><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("periodEnd", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plan?.periodEnd ?? selectedForDisplay?.periodCoveredEndDate ?? "" : form.periodEnd} /></div>
             </Field>
-          </Card>
-
-          <Card className="order-2 xl:order-none" icon={CalendarDays} title="Initial Schedule">
-            <Field label="Start & End Date" error={errors.plannedStartDate?.[0] ?? errors.plannedEndDate?.[0]}>
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("plannedStart", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plannedStartDate ?? "" : form.plannedStart} /><span>to</span><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("plannedEnd", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plannedEndDate ?? "" : form.plannedEnd} /></div>
-            </Field>
-            <Field label="Planned Duration"><input className={inputClass} disabled value={`${source === "planned" ? inclusiveDays(selectedForDisplay?.plannedStartDate, selectedForDisplay?.plannedEndDate) : duration || 0} days`} /></Field>
+            <div className="ml-0 mt-2 rounded-md border border-[#75b5d2] bg-[#d8eafb] p-4 sm:ml-[9.5rem]">
+              <div className="mb-3 flex items-center gap-2 font-semibold text-[#123a98]"><CalendarDays size={20} /> Initial Schedule</div>
+              <div className="space-y-3">
+                <Field label="Start & End Date" error={errors.plannedStartDate?.[0] ?? errors.plannedEndDate?.[0]}>
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2"><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("plannedStart", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plannedStartDate ?? "" : form.plannedStart} /><span>to</span><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("plannedEnd", event.target.value)} type="date" value={source === "planned" ? selectedForDisplay?.plannedEndDate ?? "" : form.plannedEnd} /></div>
+                </Field>
+                <Field label="Duration"><input className={inputClass} disabled value={`${source === "planned" ? inclusiveDays(selectedForDisplay?.plannedStartDate, selectedForDisplay?.plannedEndDate) : duration || 0} days`} /></Field>
+              </div>
+            </div>
           </Card>
         </div>
 
-        <Card className="order-1 xl:order-none" icon={ShieldCheck} title="Engagement Identity">
+        <Card className="order-1 xl:col-start-2 xl:row-start-1 xl:order-none" icon={ShieldCheck} title="Engagement Identity">
           <Field label="Engagement Title" error={errors.title?.[0]}><input className={inputClass} disabled={source === "planned"} onChange={(event) => set("title", event.target.value)} value={source === "planned" ? selectedForDisplay?.title ?? "" : form.title} /></Field>
           <Field label="Office" error={errors.officeIds?.[0]}>
             {source === "planned" ? <input className={inputClass} disabled value={selectedForDisplay?.offices?.[0]?.name ?? ""} /> : <SearchableSelect onChange={changeOffice} options={officeOptions} placeholder="Select engagement office" value={form.officeId} />}
@@ -577,14 +524,15 @@ export default function AemsEngagementCreatePage() {
           <Field label="Audit Year"><input className={inputClass} disabled={source === "planned"} max="2200" min="2000" onChange={(event) => set("auditYear", event.target.value)} type="number" value={source === "planned" ? selectedForDisplay?.plan?.fiscalYear ?? selectedForDisplay?.auditYear ?? "" : form.auditYear} /></Field>
         </Card>
 
-        <Card className="order-3 xl:order-none xl:mt-5" icon={MessageSquare} title="Audit Team & Office Order">
+        <Card className="order-3 xl:col-start-2 xl:row-start-2 xl:order-none" icon={MessageSquare} title="Audit Team & Office Order">
           <Field label="AEO No."><input className={inputClass} onChange={(event) => set("aeoReference", event.target.value)} placeholder="AEO-2026-001" value={form.aeoReference} /></Field>
           <Field label="AEO Date"><input className={inputClass} onChange={(event) => set("aeoDate", event.target.value)} type="date" value={form.aeoDate} /></Field>
-          <Field label="Department Head"><SearchableSelect onChange={(value) => set("departmentHeadId", value)} options={userOptions} placeholder="Select department head" value={form.departmentHeadId} /></Field>
-          <Field label="Team Leader"><SearchableSelect onChange={(value) => set("teamLeaderId", value)} options={userOptions} placeholder="Select team leader" value={form.teamLeaderId} /></Field>
-          <Field label="Team Members"><SearchableSelect multiple onChange={(value) => set("teamMemberIds", value)} options={userOptions} placeholder="Search and select team members" value={form.teamMemberIds} /></Field>
-          <Field label="Support Staff"><SearchableSelect multiple onChange={(value) => set("supportStaffIds", value)} options={userOptions} placeholder="Search and select support staff" value={form.supportStaffIds} /></Field>
-          <p className="rounded border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900">This is the initial proposal. Formal team assignment and AEO issuance remain controlled in their respective workspaces.</p>
+          <Field label="Department Head"><input className={inputClass} disabled value={ciasHead?.name ?? "CIAS Head"} /></Field>
+          <Field label="Team Leader"><SearchableSelect onChange={(value) => set("teamLeaderId", value)} options={armisAuditorOptions} placeholder="Select ARMIS auditor" value={form.teamLeaderId} /></Field>
+          <Field label="Team Members"><SearchableSelect multiple onChange={(value) => set("teamMemberIds", value)} options={armisAuditorOptions.filter((item) => String(item.value) !== String(form.teamLeaderId))} placeholder="Search ARMIS auditors" value={form.teamMemberIds} /></Field>
+          <Field label="Support Staff"><SearchableSelect multiple onChange={(value) => set("supportStaffIds", value)} options={supportStaffOptions} placeholder="Search available ARMIS staff" value={form.supportStaffIds} /></Field>
+          <Field label="AEO Document"><input accept=".pdf,.doc,.docx" className={`${inputClass} h-auto py-2`} onChange={(event) => set("aeoDocument", event.target.files?.[0] ?? null)} type="file" /></Field>
+          <p className="rounded border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900">The engagement is authorized and enters Planning when it is created. Team members are sourced from active ARMIS resources.</p>
         </Card>
       </div>
     </main>

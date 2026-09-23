@@ -59,7 +59,7 @@ class AemsEngagementRegistryService
 
             $officeIds = $source->offices->pluck('id')->map(fn ($id): int => (int) $id)->values();
             $this->assertSingleEngagementOffice($officeIds->all(), 'IAP engagement');
-            $projection = AuditEngagement::lifecycleProjectionForStatus('DRAFT');
+            $projection = AuditEngagement::lifecycleProjectionForStatus('ENGAGEMENT_PLANNING');
             $snapshot = $this->sourceSnapshot($source, $request->user());
             $engagement = AuditEngagement::query()->create([
                 'engagement_code' => $requestedCode ?: $this->nextCode(
@@ -93,7 +93,7 @@ class AemsEngagementRegistryService
                 'planned_end_date' => $source->planned_end_date,
                 'expected_report_date' => $source->expected_report_date,
                 'planned_person_days' => $source->estimated_person_days,
-                'status' => 'DRAFT',
+                'status' => 'ENGAGEMENT_PLANNING',
                 ...$projection,
                 'created_by' => $request->user()->id,
                 'updated_by' => $request->user()->id,
@@ -112,7 +112,7 @@ class AemsEngagementRegistryService
                 $engagement,
                 'IMPORT_FROM_IAP',
                 null,
-                'DRAFT',
+                'ENGAGEMENT_PLANNING',
                 null,
                 $newValues,
                 "Imported approved IAP item {$source->engagement_code}.",
@@ -150,7 +150,7 @@ class AemsEngagementRegistryService
             // Special/unplanned authority is recorded at creation, but the
             // aggregate still starts as a Draft so the engagement package can
             // be reviewed and completed before authorization is issued.
-            $projection = AuditEngagement::lifecycleProjectionForStatus('DRAFT');
+            $projection = AuditEngagement::lifecycleProjectionForStatus('ENGAGEMENT_PLANNING');
             $year = (int) substr((string) $validated['specialAuthorityDate'], 0, 4);
             $engagement = AuditEngagement::query()->create([
                 ...$this->mutableAttributes($validated),
@@ -178,7 +178,7 @@ class AemsEngagementRegistryService
                         'requestingOfficeId' => $validated['requestingOfficeId'] ?? null,
                     ],
                 ],
-                'status' => 'DRAFT',
+                'status' => 'ENGAGEMENT_PLANNING',
                 ...$projection,
                 'engagement_office_id' => ! empty($validated['officeIds']) ? (int) $validated['officeIds'][0] : null,
                 'created_by' => $request->user()->id,
@@ -206,7 +206,7 @@ class AemsEngagementRegistryService
                 $engagement,
                 'CREATE_SPECIAL',
                 null,
-                'DRAFT',
+                'ENGAGEMENT_PLANNING',
                 null,
                 $newValues,
                 'Created from separately approved special or unplanned authority.',

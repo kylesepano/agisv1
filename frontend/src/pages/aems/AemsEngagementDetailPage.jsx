@@ -20,36 +20,6 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import useRecordView from "../../hooks/useRecordView";
 import { aemsEngagementApi } from "../../services/api";
 
-const phaseLabels = {
-  FOUNDATION: "Planning",
-  PLANNING: "Planning",
-  EXECUTION: "Execution",
-  ISSUES_AFR: "Audit Issues",
-  CONFERENCES: "Execution",
-  REPORTING: "Audit Reports",
-  COMPLETION_TRANSFER: "Completion",
-  CLOSURE: "Completion",
-};
-
-const statusLabels = {
-  DRAFT: "Draft",
-  AUTHORIZATION_PREPARATION: "For Authorization",
-  RETURNED_FOR_REVISION: "Under Review",
-  AUTHORIZED: "Authorized",
-  ENGAGEMENT_PLANNING: "In Progress",
-  ENTRY_CONFERENCE: "In Progress",
-  FIELDWORK: "In Progress",
-  FINDINGS_COMMUNICATION: "Under Review",
-  EXIT_CONFERENCE: "Under Review",
-  REPORTING: "Draft AFR",
-  ISSUED: "Issued",
-  CLOSURE_REVIEW: "For Closure",
-  COMPLETED: "For Closure",
-  CLOSED: "Closed",
-  SUSPENDED: "Suspended",
-  CANCELLED: "Cancelled",
-};
-
 const phaseOrder = {
   FOUNDATION: 1,
   PLANNING: 1,
@@ -182,7 +152,7 @@ export default function AemsEngagementDetailPage() {
   ];
 
   return (
-    <main className="min-w-0 bg-[#eef7fa] px-5 py-5 text-[#10389a] sm:px-8">
+    <main className="mx-auto min-w-0 max-w-[1750px] bg-[#eef7fa] px-5 py-5 text-[#10389a] sm:px-8">
       <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-2 text-sm text-sky-700">
         <Link className="hover:text-sky-900 hover:underline" to="/dashboard">Home</Link>
         <span className="text-slate-400">›</span>
@@ -199,17 +169,19 @@ export default function AemsEngagementDetailPage() {
         <div>
           <div className="flex flex-wrap items-center gap-4">
             <h2 className="text-3xl font-semibold tracking-tight text-[#073b9b] sm:text-[2.35rem]">Audit Engagement Details</h2>
-            <span className="text-sm text-red-500">[WF-SCR-200-03]</span>
+            <span className="text-sm text-red-500">[{tab === "planning" ? "WF-SCR-210-01" : "WF-SCR-200-03"}]</span>
           </div>
           <p className="mt-1 text-sm text-[#154da8]">View the authoritative details of this audit engagement and access its component workspaces.</p>
         </div>
         <div className="flex gap-3">
+          <button className="h-11 rounded-md border border-slate-400 bg-white px-5 text-slate-700" onClick={() => navigate("/audit-engagement-management")} type="button">← Back to AEM Workspace</button>
           <button className="h-11 rounded-md border border-slate-400 bg-white px-8 text-slate-700" onClick={() => navigate(`/audit-engagement-management/edit?engagementId=${engagement.id}&source=${engagement.sourceType === "SPECIAL" ? "unplanned" : "planned"}`)} type="button">Edit Engagement</button>
           <button className="inline-flex h-11 items-center gap-2 rounded-md bg-[#087bea] px-8 text-white" type="button">More Actions <ChevronDown size={16} /></button>
         </div>
       </div>
 
-      <section className="mb-3 grid gap-6 rounded-lg border-2 border-[#2294d2] bg-[#f7fbff] px-8 py-6 lg:grid-cols-[1.05fr_1.35fr_1fr]">
+      <div className="mb-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <section className="grid gap-6 rounded-lg border-2 border-[#2294d2] bg-[#f7fbff] px-8 py-6 lg:grid-cols-[1.05fr_1.35fr_1fr]">
         <div className="border-b border-[#78afca] pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-8">
           <strong className="block text-3xl text-[#123a98]">{engagement.engagementCode}</strong>
           <h3 className="mt-2 text-xl font-semibold text-[#123a98]">{engagement.title}</h3>
@@ -220,11 +192,35 @@ export default function AemsEngagementDetailPage() {
           <Row label="Audit Year:">{engagement.auditYear ?? plan.fiscalYear ?? new Date(engagement.plannedStartDate ?? engagement.createdAt).getFullYear()}</Row>
           <Row label="Period Covered:">{formatDate(engagement.periodCoveredStartDate ?? plan.periodStart)} - {formatDate(engagement.periodCoveredEndDate ?? plan.periodEnd)}</Row>
         </dl>
-        <dl>
-          <Row label="Current Phase"><span className="inline-block min-w-32 rounded-lg bg-amber-100 px-4 py-1 text-center font-semibold text-amber-700">{phaseLabels[engagement.phase] ?? "Planning"}</span></Row>
-          <Row label="Engagement Status"><span className="inline-block min-w-32 rounded-lg bg-blue-100 px-4 py-1 text-center font-semibold text-blue-700">{statusLabels[engagement.status] ?? engagement.status}</span></Row>
-        </dl>
+        <div className="flex min-w-0 flex-col justify-between gap-3">
+          <ul className="space-y-1 text-sm">
+            {[
+              "Engagement Source & Authorization",
+              "Engagement Identity",
+              "Initial Engagement Direction",
+              "Audit Team & Office Order",
+            ].map((item) => <li className="flex items-center justify-between gap-3" key={item}><span>{item}:</span><span className="text-xl leading-none text-[#75b5d2]">›</span></li>)}
+          </ul>
+          <button className="self-end rounded-md border-2 border-[#2294d2] bg-white px-7 py-2 text-sm font-medium text-[#123a98] hover:bg-sky-50" onClick={() => setSearchParams({})} type="button">View Full Details</button>
+        </div>
       </section>
+      <section className="rounded-lg border-2 border-[#75b5d2] bg-[#f7fbff]">
+        <header className="grid grid-cols-[1fr_auto] border-b border-[#75b5d2] bg-[#d7e9f8] px-5 py-2 font-semibold text-[#123a98]"><span>Progress</span><span>Status</span></header>
+        <ol className="space-y-1 px-5 py-3 text-sm">
+          {[
+            ["Authorization", ["AUTHORIZED", "ENGAGEMENT_PLANNING", "ENTRY_CONFERENCE", "FIELDWORK", "FINDINGS_COMMUNICATION", "EXIT_CONFERENCE", "REPORTING", "ISSUED", "CLOSURE_REVIEW", "COMPLETED", "CLOSED"]],
+            ["Planning", ["ENGAGEMENT_PLANNING", "ENTRY_CONFERENCE", "FIELDWORK", "FINDINGS_COMMUNICATION", "EXIT_CONFERENCE", "REPORTING", "ISSUED", "CLOSURE_REVIEW", "COMPLETED", "CLOSED"]],
+            ["Execution", ["FIELDWORK", "FINDINGS_COMMUNICATION", "EXIT_CONFERENCE", "REPORTING", "ISSUED", "CLOSURE_REVIEW", "COMPLETED", "CLOSED"]],
+            ["Reporting", ["REPORTING", "ISSUED", "CLOSURE_REVIEW", "COMPLETED", "CLOSED"]],
+            ["Completion & Transfer", ["CLOSURE_REVIEW", "COMPLETED", "CLOSED"]],
+          ].map(([label, completed], index) => {
+            const done = completed.includes(engagement.status);
+            const active = !done && index === 1;
+            return <li className="grid grid-cols-[1fr_auto] gap-3" key={label}><span className="flex items-center gap-2"><span className={`h-3 w-3 rounded-full border-2 ${done ? "border-emerald-600 bg-emerald-100" : active ? "border-[#123a98] bg-[#123a98]" : "border-[#123a98] bg-white"}`} />{label}</span><span className={done ? "text-emerald-600" : active ? "text-amber-600" : "text-slate-400"}>{done ? "[ Done ]" : active ? "[ In Progress ]" : "[ Not Started ]"}</span></li>;
+          })}
+        </ol>
+      </section>
+      </div>
 
       <nav className="overflow-x-auto rounded-t-lg border-2 border-[#2294d2] bg-[#dcebfa]" aria-label="Engagement workspaces">
         <div className="flex min-w-max">
