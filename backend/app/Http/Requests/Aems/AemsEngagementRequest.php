@@ -69,6 +69,8 @@ class AemsEngagementRequest extends FormRequest
                 Rule::exists('users', 'id')->whereNull('deleted_at'),
             ],
             'auditTypeId' => ['nullable', 'integer', 'exists:master_list_items,id'],
+            'auditTypeIds' => ['nullable', 'array', 'min:1'],
+            'auditTypeIds.*' => ['integer', 'distinct', 'exists:master_list_items,id'],
             'initialTeamPlan' => ['nullable', 'array'],
             'initialTeamPlan.departmentHeadId' => ['nullable', 'integer', Rule::exists('users', 'id')->whereNull('deleted_at')],
             'initialTeamPlan.teamLeaderId' => ['nullable', 'integer', Rule::exists('users', 'id')->whereNull('deleted_at')],

@@ -37,7 +37,7 @@ const tabRequirements = {
   execution: { minimumPhase: 2, reason: "Complete the Planning stage before Execution is available." },
   issues: { minimumPhase: 3, reason: "Move the engagement to Audit Issues before this workspace is available." },
   afrs: { minimumPhase: 3, reason: "Move the engagement to Audit Issues before AFRs are available." },
-  reports: { minimumPhase: 5, reason: "Complete the preceding engagement stages before Audit Reports are available." },
+  reporting: { minimumPhase: 5, reason: "Complete the preceding engagement stages before Reporting is available." },
   completion: { minimumPhase: 6, reason: "Issue the audit report before Completion & Transfer is available." },
   activity: { minimumPhase: 0 },
 };
@@ -105,10 +105,11 @@ export default function AemsEngagementDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [planningActivity, setPlanningActivity] = useState(0);
+  const [summarySection, setSummarySection] = useState(null);
   const requestedTab = searchParams.get("tab");
-  const tab = ["planning", "activity"].includes(requestedTab)
+  const tab = ["details", "planning", "execution", "reporting", "completion"].includes(requestedTab)
     ? requestedTab
-    : "details";
+    : "overview";
 
   useEffect(() => {
     let active = true;
@@ -141,14 +142,10 @@ export default function AemsEngagementDetailPage() {
   const source = engagement.sourceType === "PLANNED";
   const currentPhaseOrder = phaseOrder[engagement.phase] ?? 1;
   const tabs = [
-    ["details", "Details", Home, null],
-    ["planning", "Planning", FileText, null],
+    ["planning", "Planning", FileText],
     ["execution", "Execution", Settings],
-    ["issues", "Audit Issues", TriangleAlert],
-    ["afrs", "AFRs", FileSearch],
-    ["reports", "Audit Reports", BarChart3],
+    ["reporting", "Reporting", BarChart3],
     ["completion", "Completion & Transfer", CheckSquare],
-    ["activity", "Activity Log", Activity, null],
   ];
 
   return (
@@ -199,9 +196,9 @@ export default function AemsEngagementDetailPage() {
               "Engagement Identity",
               "Initial Engagement Direction",
               "Audit Team & Office Order",
-            ].map((item) => <li className="flex items-center justify-between gap-3" key={item}><span>{item}:</span><span className="text-xl leading-none text-[#75b5d2]">›</span></li>)}
+            ].map((item) => <li key={item}><button className="flex w-full items-center justify-between gap-3 text-left hover:text-sky-600" onClick={() => setSummarySection(summarySection === item ? null : item)} type="button"><span>{item}:</span><span className="text-xl leading-none text-[#75b5d2]">›</span></button>{summarySection === item && <p className="mt-1 rounded border border-sky-200 bg-sky-50 px-2 py-1.5 text-xs text-slate-600">{item === "Engagement Source & Authorization" ? (source ? `IAP: ${plan.code ?? "not recorded"}` : `Authority: ${engagement.specialAuthorityReference ?? "not recorded"}`) : item === "Engagement Identity" ? `${engagement.title} • ${engagement.offices?.[0]?.name ?? "Office not assigned"}` : item === "Initial Engagement Direction" ? ((engagement.auditAreas ?? []).map((area) => area.name).join(", ") || "No audit areas recorded") : `AEO: ${engagement.initialTeamPlan?.aeoReference ?? "not yet issued"}`}</p>}</li>)}
           </ul>
-          <button className="self-end rounded-md border-2 border-[#2294d2] bg-white px-7 py-2 text-sm font-medium text-[#123a98] hover:bg-sky-50" onClick={() => setSearchParams({})} type="button">View Full Details</button>
+          <button className="self-end rounded-md border-2 border-[#2294d2] bg-white px-7 py-2 text-sm font-medium text-[#123a98] hover:bg-sky-50" onClick={() => setSearchParams({ tab: "details" })} type="button">View Full Details</button>
         </div>
       </section>
       <section className="rounded-lg border-2 border-[#75b5d2] bg-[#f7fbff]">
@@ -214,8 +211,9 @@ export default function AemsEngagementDetailPage() {
             ["Reporting", ["REPORTING", "ISSUED", "CLOSURE_REVIEW", "COMPLETED", "CLOSED"]],
             ["Completion & Transfer", ["CLOSURE_REVIEW", "COMPLETED", "CLOSED"]],
           ].map(([label, completed], index) => {
-            const done = completed.includes(engagement.status);
-            const active = !done && index === 1;
+            const stageOrder = [0, 1, 2, 5, 6][index];
+            const done = stageOrder < currentPhaseOrder;
+            const active = stageOrder === currentPhaseOrder;
             return <li className="grid grid-cols-[1fr_auto] gap-3" key={label}><span className="flex items-center gap-2"><span className={`h-3 w-3 rounded-full border-2 ${done ? "border-emerald-600 bg-emerald-100" : active ? "border-[#123a98] bg-[#123a98]" : "border-[#123a98] bg-white"}`} />{label}</span><span className={done ? "text-emerald-600" : active ? "text-amber-600" : "text-slate-400"}>{done ? "[ Done ]" : active ? "[ In Progress ]" : "[ Not Started ]"}</span></li>;
           })}
         </ol>
@@ -232,14 +230,13 @@ export default function AemsEngagementDetailPage() {
                 aria-disabled={locked}
                 className={`flex h-14 items-center gap-2 border-b-4 px-5 text-base font-semibold ${
                   locked
-                    ? "cursor-not-allowed border-transparent text-slate-400"
+                    ? "border-transparent text-slate-400 hover:bg-white/60"
                     : tab === key
                       ? "border-emerald-400 bg-white text-[#087bea]"
                       : "border-transparent text-[#123a98] hover:bg-white/60"
                 }`}
-                disabled={locked}
                 key={key}
-                onClick={() => setSearchParams(key === "details" ? {} : { tab: key })}
+                onClick={() => setSearchParams({ tab: key })}
                 title={locked ? requirement.reason : undefined}
                 type="button"
               >
@@ -253,10 +250,10 @@ export default function AemsEngagementDetailPage() {
       </nav>
 
       <section className="mb-7 rounded-b-lg border-x-2 border-b-2 border-[#2294d2] bg-[#dcebfa] p-4 sm:p-7">
-      {tab === "activity" ? (
-        <Section icon={Activity} title="Activity Log">
-          {(engagement.events ?? []).length ? <ol className="divide-y divide-sky-100">{engagement.events.slice().reverse().map((event) => <li className="grid gap-2 py-4 sm:grid-cols-[12rem_1fr]" key={event.id}><div><strong className="block text-sm text-[#123a98]">{event.action.replaceAll("_", " ")}</strong><span className="text-xs text-slate-500">{formatDate(event.createdAt, true)}</span></div><div className="text-sm text-slate-700"><p>{event.comment || "Engagement record updated."}</p><span className="mt-1 block text-xs text-slate-500">By {event.actor?.name ?? "System"}</span></div></li>)}</ol> : <p className="text-sm text-slate-500">No engagement activity has been recorded.</p>}
-        </Section>
+      {tab === "overview" ? (
+        <div className="grid gap-6 rounded-md border border-[#9ac3d9] bg-[#f8fcff] p-10 md:grid-cols-2 xl:grid-cols-4">
+          {tabs.map(([key, label, Icon]) => <article className="flex min-h-80 flex-col items-center justify-center rounded-xl border-2 border-[#2294d2] bg-[#d7e2f4] p-6 text-center" key={key}><Icon size={88} strokeWidth={1.6} /><h3 className="mt-7 text-2xl font-semibold">{label}</h3><button className="mt-10 inline-flex items-center gap-4 rounded-md border border-slate-400 bg-white px-8 py-3 text-slate-700" onClick={() => setSearchParams({ tab: key })} type="button">Open Activity <ArrowRight size={18} /></button></article>)}
+        </div>
       ) : tab === "planning" ? (
         <Section icon={FileText} title="Planning Activities">
           <div className="grid overflow-hidden rounded-md border border-[#9ac3d9] bg-white lg:grid-cols-[25rem_minmax(0,1fr)]">
@@ -287,7 +284,7 @@ export default function AemsEngagementDetailPage() {
             </div>
           </div>
         </Section>
-      ) : (
+      ) : tab === "details" ? (
         <div className="mx-auto grid max-w-[1500px] gap-5 lg:grid-cols-2">
           <Section icon={Info} title="Engagement Source">
             <dl>
@@ -312,7 +309,7 @@ export default function AemsEngagementDetailPage() {
             <dl className="grid gap-x-10 md:grid-cols-2">
               <Row label="AEO Reference">{engagement.engagementOrder?.orderCode ?? engagement.initialTeamPlan?.aeoReference ?? "Not yet created"}</Row>
               <Row label="AEO Date">{formatDate(engagement.initialTeamPlan?.aeoDate)}</Row>
-              <Row label="Department Head">{engagement.initialTeamPlan?.departmentHead?.name ?? "To be assigned"}</Row>
+              <Row label="Department Head">{engagement.initialTeamPlan?.departmentHead?.name ?? "CIAS Head"}</Row>
               <Row label="Team Leader">{engagement.initialTeamPlan?.teamLeader?.name ?? engagement.teamMembers?.find((member) => member.assignmentRoleCode === "TEAM_LEADER")?.user?.name ?? "To be assigned"}</Row>
               <Row label="Team Members"><span>{(engagement.initialTeamPlan?.teamMembers ?? []).map((person) => person.name).join(", ") || "To be assigned"}</span></Row>
               <Row label="Support Staff"><span>{(engagement.initialTeamPlan?.supportStaff ?? []).map((person) => person.name).join(", ") || "None proposed"}</span></Row>
@@ -323,6 +320,8 @@ export default function AemsEngagementDetailPage() {
             <dl className="grid gap-x-10 md:grid-cols-2"><Row label="Created By">{engagement.creator?.name}</Row><Row label="Date Created">{formatDate(engagement.createdAt)}</Row><Row label="Last Updated">{formatDate(engagement.updatedAt)}</Row></dl>
           </Section>
         </div>
+      ) : (
+        <Section icon={Settings} title={`${tabs.find(([key]) => key === tab)?.[1] ?? "Stage"} Workspace`}><p className="text-sm text-slate-600">This phase has not yet started for the current engagement.</p></Section>
       )}
       </section>
     </main>

@@ -38,6 +38,7 @@ class AemsEngagementResource extends JsonResource
             'specialAuthorityApprovedBy' => $this->special_authority_approved_by,
             'specialAuthorityDocumentVersionId' => $this->special_authority_document_version_id,
             'auditTypeId' => $this->audit_type_id,
+            'auditTypeIds' => $this->audit_type_ids ?? ($this->audit_type_id ? [$this->audit_type_id] : []),
             'initialTeamPlan' => $this->initialTeamPlan(),
             'engagementApproachId' => $this->engagement_approach_id,
             'auditYear' => $this->audit_year,

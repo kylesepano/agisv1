@@ -102,6 +102,7 @@ export default function AemsEngagementCreatePage() {
     title: "",
     officeId: "",
     auditTypeId: "",
+    auditTypeIds: [],
     auditYear: String(new Date().getFullYear()),
     auditAreaIds: [],
     objective: "",
@@ -138,6 +139,7 @@ export default function AemsEngagementCreatePage() {
         setUsers(people);
         setArmisResources(armisRows.filter((resource) => resource.status === "ACTIVE"));
         setMasterLists(lists);
+        const ciasHeadId = people.find((person) => /cias.*head|head.*cias/i.test(`${person.position ?? ""} ${person.name ?? ""}`))?.id ?? "";
         if (record) {
           setExistingEngagement(record);
           setForm((current) => ({
@@ -150,6 +152,7 @@ export default function AemsEngagementCreatePage() {
             title: record.title ?? "",
             officeId: record.offices?.[0]?.id ?? record.engagementOfficeId ?? "",
             auditTypeId: record.auditTypeId ?? "",
+            auditTypeIds: record.auditTypeIds ?? (record.auditTypeId ? [record.auditTypeId] : []),
             auditYear: String(record.auditYear ?? new Date().getFullYear()),
             auditAreaIds: (record.auditAreas ?? []).map((area) => area.id),
             objective: record.objectives ?? "",
@@ -159,13 +162,13 @@ export default function AemsEngagementCreatePage() {
             plannedEnd: record.plannedEndDate ?? "",
             aeoReference: record.initialTeamPlan?.aeoReference ?? "",
             aeoDate: record.initialTeamPlan?.aeoDate ?? "",
-            departmentHeadId: record.initialTeamPlan?.departmentHeadId ?? "",
+            departmentHeadId: record.initialTeamPlan?.departmentHeadId ?? ciasHeadId,
             teamLeaderId: record.initialTeamPlan?.teamLeaderId ?? "",
             teamMemberIds: record.initialTeamPlan?.teamMemberIds ?? [],
             supportStaffIds: record.initialTeamPlan?.supportStaffIds ?? [],
             lockVersion: record.lockVersion,
           }));
-        }
+        } else if (ciasHeadId) setForm((current) => ({ ...current, departmentHeadId: ciasHeadId }));
       })
       .catch((reason) =>
         active && setErrors({ form: [reason.message || "Unable to load form options."] }),
@@ -267,6 +270,7 @@ export default function AemsEngagementCreatePage() {
           specialAuthorityApprovedBy: form.directingAuthorityId || null,
           requestingOfficeId: form.requestingOfficeId || null,
           auditTypeId: form.auditTypeId || null,
+          auditTypeIds: form.auditTypeIds,
           auditYear: form.auditYear,
           objectives: form.objective,
           scope: "",
@@ -330,6 +334,7 @@ export default function AemsEngagementCreatePage() {
           }
         });
         if (form.officeId) payload.append("officeIds[]", form.officeId);
+        form.auditTypeIds.forEach((id) => payload.append("auditTypeIds[]", id));
         form.auditAreaIds.forEach((id) => payload.append("auditAreaIds[]", id));
         if (form.aeoReference) payload.append("initialTeamPlan[aeoReference]", form.aeoReference);
         if (form.aeoDate) payload.append("initialTeamPlan[aeoDate]", form.aeoDate);
@@ -518,8 +523,8 @@ export default function AemsEngagementCreatePage() {
           <Field label="Office" error={errors.officeIds?.[0]}>
             {source === "planned" ? <input className={inputClass} disabled value={selectedForDisplay?.offices?.[0]?.name ?? ""} /> : <SearchableSelect onChange={changeOffice} options={officeOptions} placeholder="Select engagement office" value={form.officeId} />}
           </Field>
-          <Field label="Audit Type" error={errors.auditTypeId?.[0]}>
-            {source === "planned" ? <input className={inputClass} disabled value={selectedForDisplay?.auditType?.label ?? ""} /> : <SearchableSelect onChange={(value) => set("auditTypeId", value)} options={auditTypes.map((item) => ({ value: item.id, label: item.label, description: item.code, keywords: `${item.code ?? ""} ${item.label}` }))} placeholder="Select audit type" value={form.auditTypeId} />}
+          <Field label="Audit Type(s)" error={errors.auditTypeIds?.[0] ?? errors.auditTypeId?.[0]}>
+            {source === "planned" ? <input className={inputClass} disabled value={selectedForDisplay?.auditType?.label ?? ""} /> : <SearchableSelect multiple onChange={(value) => setForm((current) => ({ ...current, auditTypeIds: value, auditTypeId: value[0] ?? "" }))} options={auditTypes.map((item) => ({ value: item.id, label: item.label, description: item.code, keywords: `${item.code ?? ""} ${item.label}` }))} placeholder="Search and select audit type(s)" value={form.auditTypeIds} />}
           </Field>
           <Field label="Audit Year"><input className={inputClass} disabled={source === "planned"} max="2200" min="2000" onChange={(event) => set("auditYear", event.target.value)} type="number" value={source === "planned" ? selectedForDisplay?.plan?.fiscalYear ?? selectedForDisplay?.auditYear ?? "" : form.auditYear} /></Field>
         </Card>
