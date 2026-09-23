@@ -84,6 +84,7 @@ class AuditEngagement extends Model
         'special_authority_approved_by',
         'special_authority_document_version_id',
         'audit_type_id',
+        'initial_team_plan',
         'engagement_approach_id',
         'audit_year',
         'background',
@@ -131,6 +132,7 @@ class AuditEngagement extends Model
     {
         return [
             'source_snapshot' => 'array',
+            'initial_team_plan' => 'array',
             'scope_source_variance' => 'array',
             'suspension_metadata' => 'array',
             'cancellation_metadata' => 'array',

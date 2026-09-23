@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Activity,
+  ArrowRight,
   BarChart3,
   CalendarDays,
   CheckSquare,
@@ -71,6 +72,19 @@ const tabRequirements = {
   activity: { minimumPhase: 0 },
 };
 
+const planningActivities = [
+  { label: "Preliminary Survey & Risk Assessment", section: "survey", description: "Understand the activity, objectives, processes, risks, controls, systems, and operating environment.", path: "planning-package" },
+  { label: "Document Request List", description: "Coordinate the initial document and information requirements for this engagement.", path: "planning-package", section: "overview" },
+  { label: "Process Flow", section: "process-flows", description: "Document the end-to-end process flow and identify key control points.", path: "planning-package" },
+  { label: "Risk Matrix", section: "risk-matrix", description: "Assess inherent and residual risks, controls, and the planned audit response.", path: "planning-package" },
+  { label: "Criteria Matrix", description: "Define the criteria and standards that will be used to assess the engagement.", path: "aep" },
+  { label: "Audit Engagement Plan (AEP)", description: "Set the engagement objectives, scope, methodology, and planning baseline.", path: "aep" },
+  { label: "Key Performance Indicators (KPIs)", section: "kpis", description: "Define measurable KPI targets, methods, and responsible offices.", path: "planning-package" },
+  { label: "Audit Program", description: "Prepare the approved audit procedures and planned tests.", path: "audit-program" },
+  { label: "Audit Sampling", description: "Document the sampling approach and sample design in the audit program.", path: "audit-program" },
+  { label: "Entrance Conference Preparation", description: "Prepare the agenda and required materials before the entry conference.", path: "entry-conferences" },
+];
+
 function formatDate(value, withTime = false) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("en-PH", {
@@ -120,6 +134,7 @@ export default function AemsEngagementDetailPage() {
   const [engagement, setEngagement] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [planningActivity, setPlanningActivity] = useState(0);
   const requestedTab = searchParams.get("tab");
   const tab = ["planning", "activity"].includes(requestedTab)
     ? requestedTab
@@ -247,31 +262,35 @@ export default function AemsEngagementDetailPage() {
           {(engagement.events ?? []).length ? <ol className="divide-y divide-sky-100">{engagement.events.slice().reverse().map((event) => <li className="grid gap-2 py-4 sm:grid-cols-[12rem_1fr]" key={event.id}><div><strong className="block text-sm text-[#123a98]">{event.action.replaceAll("_", " ")}</strong><span className="text-xs text-slate-500">{formatDate(event.createdAt, true)}</span></div><div className="text-sm text-slate-700"><p>{event.comment || "Engagement record updated."}</p><span className="mt-1 block text-xs text-slate-500">By {event.actor?.name ?? "System"}</span></div></li>)}</ol> : <p className="text-sm text-slate-500">No engagement activity has been recorded.</p>}
         </Section>
       ) : tab === "planning" ? (
-        <div className="mx-auto grid max-w-[1500px] gap-5 lg:grid-cols-2">
-          <Section icon={FileText} title="Planning Workspace">
-            <dl>
-              <Row label="Planning Stage"><span className="inline-block rounded-lg bg-amber-100 px-4 py-1 font-semibold text-amber-700">{phaseLabels[engagement.phase] ?? "Planning"}</span></Row>
-              <Row label="Engagement Status">{statusLabels[engagement.status] ?? engagement.status}</Row>
-              <Row label="Planning Objective">{engagement.objectives || "No initial objective has been recorded."}</Row>
-            </dl>
-          </Section>
-
-          <Section icon={CalendarDays} title="Planning Schedule">
-            <dl>
-              <Row label="Planned Start">{formatDate(engagement.plannedStartDate)}</Row>
-              <Row label="Planned End">{formatDate(engagement.plannedEndDate)}</Row>
-              <Row label="Planned Duration">{duration(engagement.plannedStartDate, engagement.plannedEndDate)}</Row>
-            </dl>
-          </Section>
-
-          <Section className="lg:col-span-2" icon={Target} title="Planning Scope">
-            <dl>
-              <Row label="Audit Area(s)"><div className="flex flex-wrap gap-2">{(engagement.auditAreas ?? []).map((area) => <span className="rounded bg-[#d8eafa] px-3 py-1 text-xs text-slate-700" key={area.id}>{area.name}</span>)}{!(engagement.auditAreas ?? []).length && "No audit areas have been selected."}</div></Row>
-              <Row label="Audit Focus(es)"><div className="flex flex-wrap gap-2">{(engagement.auditFocuses ?? []).map((focus) => <span className="rounded bg-[#d8eafa] px-3 py-1 text-xs text-slate-700" key={focus.id}>{focus.name}</span>)}{!(engagement.auditFocuses ?? []).length && "No audit focuses have been selected."}</div></Row>
-              <Row label="Planning Note">The detailed Planning Package will be added here while the engagement remains in the Planning stage.</Row>
-            </dl>
-          </Section>
-        </div>
+        <Section icon={FileText} title="Planning Activities">
+          <div className="grid overflow-hidden rounded-md border border-[#9ac3d9] bg-white lg:grid-cols-[25rem_minmax(0,1fr)]">
+            <ol className="divide-y divide-sky-100 border-b border-[#9ac3d9] lg:border-b-0 lg:border-r">
+              {planningActivities.map((activity, index) => (
+                <li key={activity.label}>
+                  <button className={`flex w-full items-center gap-4 px-5 py-3 text-left text-sm font-medium ${planningActivity === index ? "border-r-4 border-[#087bea] bg-sky-100 text-[#123a98]" : "text-[#123a98] hover:bg-sky-50"}`} onClick={() => setPlanningActivity(index)} type="button">
+                    <span className="w-5 text-right font-semibold">{index + 1}</span>{activity.label}
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <div className="p-6 lg:p-8">
+              <div className="flex items-start gap-4">
+                <FileText className="mt-0.5 shrink-0 text-[#087bea]" size={34} />
+                <div>
+                  <h4 className="text-xl font-semibold text-[#123a98]">{planningActivities[planningActivity].label}</h4>
+                  <p className="mt-1 max-w-2xl text-sm leading-6 text-[#3151a2]">{planningActivities[planningActivity].description}</p>
+                </div>
+              </div>
+              <div className="mt-7 max-w-md rounded-md border border-[#2294d2] bg-[#d7e2f4] px-6 py-5 text-sm text-[#3151a2]">
+                <Row label="Activity Status">{planningActivity === 0 ? "In Progress" : "Not Started"}</Row>
+                <Row label="Responsible Auditor">{engagement.initialTeamPlan?.teamLeaderName ?? engagement.creator?.name ?? "To be assigned"}</Row>
+                <Row label="Target Completion">{formatDate(engagement.plannedEndDate)}</Row>
+                <Row label="Last Updated">{formatDate(engagement.updatedAt)}</Row>
+                <button className="mt-5 inline-flex h-10 items-center gap-3 rounded border border-slate-400 bg-white px-6 font-medium text-slate-700 hover:bg-slate-50" onClick={() => navigate(`/audit-engagement-management/${planningActivities[planningActivity].path}?engagementId=${engagement.id}${planningActivities[planningActivity].section ? `&section=${planningActivities[planningActivity].section}` : ""}`)} type="button">Open Activity <ArrowRight size={18} /></button>
+              </div>
+            </div>
+          </div>
+        </Section>
       ) : (
         <div className="mx-auto grid max-w-[1500px] gap-5 lg:grid-cols-2">
           <Section icon={Info} title="Engagement Source">
@@ -290,6 +309,17 @@ export default function AemsEngagementDetailPage() {
               <Row label="Audit Area(s)"><div className="flex flex-wrap gap-2">{(engagement.auditAreas ?? []).map((area) => <span className="rounded bg-[#d8eafa] px-3 py-1 text-xs text-slate-700" key={area.id}>{area.name}</span>)}{!(engagement.auditAreas ?? []).length && "—"}</div></Row>
               <Row label="Audit Focus(es)"><div className="flex flex-wrap gap-2">{(engagement.auditFocuses ?? []).map((focus) => <span className="rounded bg-[#d8eafa] px-3 py-1 text-xs text-slate-700" key={focus.id}>{focus.name}</span>)}{!(engagement.auditFocuses ?? []).length && "—"}</div></Row>
               <Row label="Initial Objective"><p className="rounded border border-[#bfd8e8] bg-white px-3 py-2">{engagement.objectives || "—"}</p></Row>
+            </dl>
+          </Section>
+
+          <Section className="lg:col-span-2" icon={FileText} title="Audit Team & Office Order">
+            <dl className="grid gap-x-10 md:grid-cols-2">
+              <Row label="AEO Reference">{engagement.engagementOrder?.orderCode ?? engagement.initialTeamPlan?.aeoReference ?? "Not yet created"}</Row>
+              <Row label="AEO Date">{formatDate(engagement.initialTeamPlan?.aeoDate)}</Row>
+              <Row label="Department Head">{engagement.initialTeamPlan?.departmentHead?.name ?? "To be assigned"}</Row>
+              <Row label="Team Leader">{engagement.initialTeamPlan?.teamLeader?.name ?? engagement.teamMembers?.find((member) => member.assignmentRoleCode === "TEAM_LEADER")?.user?.name ?? "To be assigned"}</Row>
+              <Row label="Team Members"><span>{(engagement.initialTeamPlan?.teamMembers ?? []).map((person) => person.name).join(", ") || "To be assigned"}</span></Row>
+              <Row label="Support Staff"><span>{(engagement.initialTeamPlan?.supportStaff ?? []).map((person) => person.name).join(", ") || "None proposed"}</span></Row>
             </dl>
           </Section>
 

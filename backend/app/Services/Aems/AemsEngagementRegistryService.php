@@ -78,6 +78,7 @@ class AemsEngagementRegistryService
                 'engagement_office_id' => $officeIds->first(),
                 'audit_year' => (int) $source->plan->fiscal_year,
                 'audit_type_id' => $source->engagement_type_id,
+                'initial_team_plan' => $request->validated('initialTeamPlan'),
                 'engagement_approach_id' => $source->audit_approach_id,
                 'background' => $source->background,
                 'objectives' => $source->objectives,
@@ -415,6 +416,7 @@ class AemsEngagementRegistryService
         return [
             'title' => $validated['title'],
             'audit_type_id' => $validated['auditTypeId'] ?? null,
+            'initial_team_plan' => $validated['initialTeamPlan'] ?? null,
             'engagement_approach_id' => $validated['engagementApproachId'] ?? null,
             'audit_year' => $validated['auditYear']
                 ?? (isset($validated['plannedStartDate'])

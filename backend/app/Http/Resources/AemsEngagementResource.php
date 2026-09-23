@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -37,6 +38,7 @@ class AemsEngagementResource extends JsonResource
             'specialAuthorityApprovedBy' => $this->special_authority_approved_by,
             'specialAuthorityDocumentVersionId' => $this->special_authority_document_version_id,
             'auditTypeId' => $this->audit_type_id,
+            'initialTeamPlan' => $this->initialTeamPlan(),
             'engagementApproachId' => $this->engagement_approach_id,
             'auditYear' => $this->audit_year,
             'background' => $this->background,
@@ -67,6 +69,7 @@ class AemsEngagementResource extends JsonResource
             ),
             'engagementOrder' => $this->whenLoaded('engagementOrder', fn () => $this->engagementOrder ? [
                 'id' => $this->engagementOrder->id,
+                'orderCode' => $this->engagementOrder->order_code,
                 'status' => $this->engagementOrder->status,
                 'currentVersionNumber' => $this->engagementOrder->current_version_number,
                 'approvedAt' => $this->engagementOrder->approved_at?->toISOString(),
@@ -198,5 +201,37 @@ class AemsEngagementResource extends JsonResource
         $decoded = json_decode($value, true);
 
         return json_last_error() === JSON_ERROR_NONE ? $decoded : $value;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function initialTeamPlan(): ?array
+    {
+        $plan = $this->initial_team_plan;
+        if (! is_array($plan)) {
+            return null;
+        }
+
+        $ids = collect([
+            $plan['departmentHeadId'] ?? null,
+            $plan['teamLeaderId'] ?? null,
+            ...($plan['teamMemberIds'] ?? []),
+            ...($plan['supportStaffIds'] ?? []),
+        ])->filter()->map(fn ($id): int => (int) $id)->unique();
+        $people = User::query()->whereIn('id', $ids)->get(['id', 'name', 'employee_id'])
+            ->keyBy('id');
+        $person = fn ($id): ?array => $id && $people->has((int) $id)
+            ? [
+                'id' => (int) $id,
+                'name' => $people[(int) $id]->name,
+                'employeeId' => $people[(int) $id]->employee_id,
+            ] : null;
+
+        return [
+            ...$plan,
+            'departmentHead' => $person($plan['departmentHeadId'] ?? null),
+            'teamLeader' => $person($plan['teamLeaderId'] ?? null),
+            'teamMembers' => collect($plan['teamMemberIds'] ?? [])->map($person)->filter()->values(),
+            'supportStaff' => collect($plan['supportStaffIds'] ?? [])->map($person)->filter()->values(),
+        ];
     }
 }

@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ChevronDown,
   Info,
+  MessageSquare,
   ShieldCheck,
   Target,
 } from "lucide-react";
@@ -107,6 +108,12 @@ export default function AemsEngagementCreatePage() {
     periodEnd: "",
     plannedStart: "",
     plannedEnd: "",
+    aeoReference: "",
+    aeoDate: "",
+    departmentHeadId: "",
+    teamLeaderId: "",
+    teamMemberIds: [],
+    supportStaffIds: [],
     lockVersion: null,
   });
 
@@ -147,6 +154,12 @@ export default function AemsEngagementCreatePage() {
             periodEnd: record.periodCoveredEndDate ?? "",
             plannedStart: record.plannedStartDate ?? "",
             plannedEnd: record.plannedEndDate ?? "",
+            aeoReference: record.initialTeamPlan?.aeoReference ?? "",
+            aeoDate: record.initialTeamPlan?.aeoDate ?? "",
+            departmentHeadId: record.initialTeamPlan?.departmentHeadId ?? "",
+            teamLeaderId: record.initialTeamPlan?.teamLeaderId ?? "",
+            teamMemberIds: record.initialTeamPlan?.teamMemberIds ?? [],
+            supportStaffIds: record.initialTeamPlan?.supportStaffIds ?? [],
             lockVersion: record.lockVersion,
           }));
         }
@@ -216,6 +229,12 @@ export default function AemsEngagementCreatePage() {
     label: focus.name,
     description: focus.code,
     keywords: `${focus.code ?? ""} ${focus.name}`,
+  }));
+  const userOptions = users.map((person) => ({
+    value: person.id,
+    label: person.name,
+    description: person.employeeId,
+    keywords: `${person.employeeId ?? ""} ${person.name}`,
   }));
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -294,6 +313,14 @@ export default function AemsEngagementCreatePage() {
           officeIds: form.officeId ? [form.officeId] : [],
           auditAreaIds: form.auditAreaIds,
           auditFocusIds: form.auditFocusIds,
+          initialTeamPlan: {
+            aeoReference: form.aeoReference || null,
+            aeoDate: form.aeoDate || null,
+            departmentHeadId: form.departmentHeadId || null,
+            teamLeaderId: form.teamLeaderId || null,
+            teamMemberIds: form.teamMemberIds,
+            supportStaffIds: form.supportStaffIds,
+          },
           lockVersion: form.lockVersion,
         });
       } else if (source === "planned") {
@@ -303,6 +330,14 @@ export default function AemsEngagementCreatePage() {
         }
         engagement = await aemsEngagementApi.importFromIap({
           iapPlanEngagementId: Number(selectedSourceId),
+          initialTeamPlan: {
+            aeoReference: form.aeoReference || null,
+            aeoDate: form.aeoDate || null,
+            departmentHeadId: form.departmentHeadId || null,
+            teamLeaderId: form.teamLeaderId || null,
+            teamMemberIds: form.teamMemberIds,
+            supportStaffIds: form.supportStaffIds,
+          },
         });
       } else {
         const payload = new FormData();
@@ -333,6 +368,12 @@ export default function AemsEngagementCreatePage() {
         if (form.officeId) payload.append("officeIds[]", form.officeId);
         form.auditAreaIds.forEach((id) => payload.append("auditAreaIds[]", id));
         form.auditFocusIds.forEach((id) => payload.append("auditFocusIds[]", id));
+        if (form.aeoReference) payload.append("initialTeamPlan[aeoReference]", form.aeoReference);
+        if (form.aeoDate) payload.append("initialTeamPlan[aeoDate]", form.aeoDate);
+        if (form.departmentHeadId) payload.append("initialTeamPlan[departmentHeadId]", form.departmentHeadId);
+        if (form.teamLeaderId) payload.append("initialTeamPlan[teamLeaderId]", form.teamLeaderId);
+        form.teamMemberIds.forEach((id) => payload.append("initialTeamPlan[teamMemberIds][]", id));
+        form.supportStaffIds.forEach((id) => payload.append("initialTeamPlan[supportStaffIds][]", id));
         if (form.supportingDocument) {
           payload.append("supportingDocument", form.supportingDocument);
         }
@@ -534,6 +575,16 @@ export default function AemsEngagementCreatePage() {
             {source === "planned" ? <input className={inputClass} disabled value={selectedForDisplay?.auditType?.label ?? ""} /> : <SearchableSelect onChange={(value) => set("auditTypeId", value)} options={auditTypes.map((item) => ({ value: item.id, label: item.label, description: item.code, keywords: `${item.code ?? ""} ${item.label}` }))} placeholder="Select audit type" value={form.auditTypeId} />}
           </Field>
           <Field label="Audit Year"><input className={inputClass} disabled={source === "planned"} max="2200" min="2000" onChange={(event) => set("auditYear", event.target.value)} type="number" value={source === "planned" ? selectedForDisplay?.plan?.fiscalYear ?? selectedForDisplay?.auditYear ?? "" : form.auditYear} /></Field>
+        </Card>
+
+        <Card className="order-3 xl:order-none xl:mt-5" icon={MessageSquare} title="Audit Team & Office Order">
+          <Field label="AEO No."><input className={inputClass} onChange={(event) => set("aeoReference", event.target.value)} placeholder="AEO-2026-001" value={form.aeoReference} /></Field>
+          <Field label="AEO Date"><input className={inputClass} onChange={(event) => set("aeoDate", event.target.value)} type="date" value={form.aeoDate} /></Field>
+          <Field label="Department Head"><SearchableSelect onChange={(value) => set("departmentHeadId", value)} options={userOptions} placeholder="Select department head" value={form.departmentHeadId} /></Field>
+          <Field label="Team Leader"><SearchableSelect onChange={(value) => set("teamLeaderId", value)} options={userOptions} placeholder="Select team leader" value={form.teamLeaderId} /></Field>
+          <Field label="Team Members"><SearchableSelect multiple onChange={(value) => set("teamMemberIds", value)} options={userOptions} placeholder="Search and select team members" value={form.teamMemberIds} /></Field>
+          <Field label="Support Staff"><SearchableSelect multiple onChange={(value) => set("supportStaffIds", value)} options={userOptions} placeholder="Search and select support staff" value={form.supportStaffIds} /></Field>
+          <p className="rounded border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900">This is the initial proposal. Formal team assignment and AEO issuance remain controlled in their respective workspaces.</p>
         </Card>
       </div>
     </main>

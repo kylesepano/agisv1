@@ -28,6 +28,15 @@ class AemsIapImportRequest extends FormRequest
                 'max:60',
                 Rule::unique('audit_engagements', 'engagement_code'),
             ],
+            'initialTeamPlan' => ['nullable', 'array'],
+            'initialTeamPlan.departmentHeadId' => ['nullable', 'integer', Rule::exists('users', 'id')->whereNull('deleted_at')],
+            'initialTeamPlan.teamLeaderId' => ['nullable', 'integer', Rule::exists('users', 'id')->whereNull('deleted_at')],
+            'initialTeamPlan.teamMemberIds' => ['nullable', 'array'],
+            'initialTeamPlan.teamMemberIds.*' => ['integer', 'distinct', Rule::exists('users', 'id')->whereNull('deleted_at')],
+            'initialTeamPlan.supportStaffIds' => ['nullable', 'array'],
+            'initialTeamPlan.supportStaffIds.*' => ['integer', 'distinct', Rule::exists('users', 'id')->whereNull('deleted_at')],
+            'initialTeamPlan.aeoReference' => ['nullable', 'string', 'max:80'],
+            'initialTeamPlan.aeoDate' => ['nullable', 'date'],
         ];
     }
 }
