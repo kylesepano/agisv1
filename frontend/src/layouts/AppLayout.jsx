@@ -338,7 +338,7 @@ export default function AppLayout() {
                   )}
                 </button>
                 {notificationOpen && (
-                  <div className="absolute right-0 top-12 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+                  <div className="fixed inset-x-3 top-[5.75rem] z-50 max-h-[calc(100dvh-7rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:max-h-none sm:w-96">
                     <div className="flex items-center border-b border-slate-200 px-4 py-3">
                       <div>
                         <strong className="block text-sm text-slate-800">
@@ -361,7 +361,7 @@ export default function AppLayout() {
                         </button>
                       )}
                     </div>
-                    <div className="max-h-[26rem] overflow-y-auto">
+                    <div className="max-h-[calc(100dvh-13.5rem)] overflow-y-auto sm:max-h-[26rem]">
                       {notificationLoading &&
                         recentNotifications.length === 0 && (
                           <div className="space-y-2 p-3">
