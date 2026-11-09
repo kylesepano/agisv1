@@ -95,7 +95,7 @@ export default function AemsEngagementDetailPage() {
   const requestedTab = searchParams.get("tab");
   const tab = ["details", "planning", "execution", "reporting", "completion", "activity"].includes(requestedTab)
     ? requestedTab
-    : "overview";
+    : "details";
 
   useEffect(() => {
     let active = true;
@@ -239,10 +239,6 @@ export default function AemsEngagementDetailPage() {
       <section className="mb-7 rounded-b-lg border-x-2 border-b-2 border-[#2294d2] bg-[#dcebfa] p-4 sm:p-7">
       {tab === "activity" ? (
         <Section icon={Activity} title="Activity Log">{(engagement.events ?? []).length ? <ol className="divide-y divide-sky-100">{engagement.events.slice().reverse().map((event) => <li className="py-3 text-sm" key={event.id}><strong>{event.action.replaceAll("_", " ")}</strong><p className="mt-1 text-slate-600">{event.comment || "Engagement record updated."}</p><small>{formatDate(event.createdAt, true)} · {event.actor?.name ?? "System"}</small></li>)}</ol> : <p className="text-sm text-slate-500">No engagement activity has been recorded.</p>}</Section>
-      ) : tab === "overview" ? (
-        <div className="grid gap-6 rounded-md border border-[#9ac3d9] bg-[#f8fcff] p-10 md:grid-cols-2 xl:grid-cols-4">
-          {tabs.map(([key, label, Icon]) => <article className="flex min-h-80 flex-col items-center justify-center rounded-xl border-2 border-[#2294d2] bg-[#d7e2f4] p-6 text-center" key={key}><Icon size={88} strokeWidth={1.6} /><h3 className="mt-7 text-2xl font-semibold">{label}</h3><button className="mt-10 inline-flex items-center gap-4 rounded-md border border-slate-400 bg-white px-8 py-3 text-slate-700" onClick={() => setSearchParams({ tab: key })} type="button">Open Activity <ArrowRight size={18} /></button></article>)}
-        </div>
       ) : tab === "planning" ? (
         <Section icon={FileText} title="Planning Activities">
           <div className="grid min-h-[510px] overflow-hidden rounded-md border border-[#9ac3d9] bg-[#f4f9ff] lg:grid-cols-[36%_minmax(0,1fr)]">
