@@ -32,6 +32,70 @@ class AemsTeamService
         private readonly AemsNotificationService $notifications,
     ) {}
 
+    /**
+     * The creation/edit form is an authorized team assignment, not just a
+     * display-only proposal. Use the same history and access records as the
+     * dedicated team workspace so all AEMS authorization checks agree.
+     */
+    public function syncInitialPlan(Request $request, AuditEngagement $engagement, bool $onlyWhenUnassigned = false): int
+    {
+        return DB::transaction(function () use ($request, $engagement, $onlyWhenUnassigned): int {
+            $locked = AuditEngagement::query()->lockForUpdate()->findOrFail($engagement->id);
+            // Never resurrect an assignment removed through the team workspace
+            // when repairing older, JSON-only engagement records.
+            if ($onlyWhenUnassigned && ($locked->teamMembers()->withTrashed()->exists() || $locked->teamHistory()->exists())) {
+                return 0;
+            }
+            $plan = $locked->initial_team_plan ?? [];
+            if (! is_array($plan)) {
+                return 0;
+            }
+            $roles = [
+                'SUPERVISOR' => array_filter([$plan['departmentHeadId'] ?? null]),
+                'TEAM_LEADER' => array_filter([$plan['teamLeaderId'] ?? null]),
+                'AUDITOR' => $plan['teamMemberIds'] ?? [],
+                'AUTHORIZED_PARTICIPANT' => $plan['supportStaffIds'] ?? [],
+            ];
+            $desired = collect($roles)->flatMap(fn (array $ids, string $role) => collect($ids)
+                ->map(fn ($id): array => ['userId' => (int) $id, 'assignmentRoleCode' => $role]));
+            if ($desired->pluck('userId')->duplicates()->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'initialTeamPlan' => ['Select each person for only one engagement team role.'],
+                ]);
+            }
+            $current = $locked->teamMembers()->where('is_active', true)->whereNull('ended_at')->get();
+            foreach ($current as $member) {
+                if (array_key_exists($member->assignment_role_code, $roles)
+                    && ! $desired->contains(fn (array $item): bool => $item['userId'] === (int) $member->user_id
+                        && $item['assignmentRoleCode'] === $member->assignment_role_code)) {
+                    $this->end($request, $locked, $member, 'Team selection changed in the engagement form.');
+                }
+            }
+            $created = 0;
+            foreach ($desired as $item) {
+                $existing = $locked->teamMembers()->where('user_id', $item['userId'])->where('is_active', true)->whereNull('ended_at')->first();
+                if ($existing && $existing->assignment_role_code !== $item['assignmentRoleCode']) {
+                    throw ValidationException::withMessages([
+                        'initialTeamPlan' => ['This person already has a different role in the Audit Team workspace. Update that assignment first.'],
+                    ]);
+                }
+                if ($existing) {
+                    continue;
+                }
+                $this->assign($request, $locked, [
+                    ...$item,
+                    // Capacity allocation is maintained separately in ARMIS.
+                    'plannedPersonDays' => 0,
+                    'assignmentNotes' => 'Assigned from the engagement creation/edit form.',
+                    'reason' => 'Authorized engagement team selected in the engagement form.',
+                ]);
+                $created++;
+            }
+
+            return $created;
+        });
+    }
+
     /** @return array<string, mixed> */
     public function overview(AuditEngagement $engagement): array
     {

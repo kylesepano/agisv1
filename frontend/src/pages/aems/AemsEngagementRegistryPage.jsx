@@ -53,14 +53,15 @@ function formatDate(value) {
 }
 
 function leaderFor(engagement) {
-  const members = engagement.teamMembers ?? [];
+  const members = (engagement.teamMembers ?? []).filter(
+    (member) => member.isActive && !member.endedAt,
+  );
   return (
     members.find((member) =>
       ["TEAM_LEADER", "AUDIT_TEAM_LEADER", "LEAD_AUDITOR"].includes(
         member.assignmentRoleCode,
       ),
     )?.user?.name ??
-    members[0]?.user?.name ??
     "Not assigned"
   );
 }

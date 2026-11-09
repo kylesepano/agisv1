@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Aems;
 
-use App\Models\Office;
+use App\Models\ArmisResourceProfile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -31,7 +31,7 @@ class AemsPreliminarySurveyRequest extends FormRequest
         }
         if ($this->input('section') === 'meeting') {
             $rules['data.ciasParticipantIds'] = ['nullable', 'array', 'max:100'];
-            $rules['data.ciasParticipantIds.*'] = ['integer', 'distinct', Rule::exists('users', 'id')->whereNull('deleted_at')->where(fn ($query) => $query->where('is_active', true)->whereIn('office_id', Office::query()->where('code', 'CIAS')->select('id')))];
+            $rules['data.ciasParticipantIds.*'] = ['integer', 'distinct', Rule::exists('users', 'id')->whereNull('deleted_at')->where(fn ($query) => $query->where('is_active', true)->whereIn('id', ArmisResourceProfile::query()->where('status', 'ACTIVE')->select('user_id')))];
             $rules['data.proposedAt'] = ['nullable', 'date'];
             $rules['data.actualDate'] = ['nullable', 'date'];
             $rules['data.noticeDocumentVersionId'] = ['nullable', 'integer', 'exists:document_versions,id'];

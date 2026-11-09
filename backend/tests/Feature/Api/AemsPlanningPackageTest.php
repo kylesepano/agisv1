@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\AemsPlanningPackageVersion;
 use App\Models\AemsRiskMatrix;
 use App\Models\AemsRiskMatrixItem;
+use App\Models\ArmisResourceProfile;
 use App\Models\AuditEngagement;
 use App\Models\AuditEngagementPlan;
 use App\Models\AuditProgram;
@@ -329,24 +330,37 @@ class AemsPlanningPackageTest extends TestCase
         }
     }
 
-    public function test_preliminary_meeting_supports_multiple_active_cias_participants(): void
+    public function test_preliminary_meeting_supports_active_armis_auditors_and_admin_staff_across_offices(): void
     {
         [$prepared, , , $engagement] = $this->fixture();
         Sanctum::actingAs($prepared);
         $office = Office::query()->where('code', 'CIAS')->firstOrFail();
-        $first = User::factory()->create(['office_id' => $office->id, 'is_active' => true]);
-        $second = User::factory()->create(['office_id' => $office->id, 'is_active' => true]);
+        $otherOffice = Office::where('code', '!=', 'CIAS')->firstOrFail();
+        $first = User::factory()->create(['office_id' => $otherOffice->id, 'is_active' => true]);
+        $second = User::factory()->create(['office_id' => $otherOffice->id, 'is_active' => true]);
         $inactive = User::factory()->create(['office_id' => $office->id, 'is_active' => false]);
-        $other = User::factory()->create(['office_id' => Office::where('code', '!=', 'CIAS')->value('id'), 'is_active' => true]);
+        $unregistered = User::factory()->create(['office_id' => $office->id, 'is_active' => true]);
+        $inactiveProfile = User::factory()->create(['office_id' => $office->id, 'is_active' => true]);
+        $deletedProfile = User::factory()->create(['office_id' => $office->id, 'is_active' => true]);
+        $deletedUser = User::factory()->create(['office_id' => $office->id, 'is_active' => true]);
+        foreach ([[$first, 'AUDIT_RESOURCE', 'ACTIVE'], [$second, 'SUPPORT', 'ACTIVE'], [$inactive, 'SPECIALIST', 'ACTIVE'], [$inactiveProfile, 'REVIEWER', 'INACTIVE'], [$deletedProfile, 'SUPPORT', 'ACTIVE'], [$deletedUser, 'AUDIT_RESOURCE', 'ACTIVE']] as [$person, $category, $status]) {
+            ArmisResourceProfile::query()->create(['resource_code' => 'TEST-PARTICIPANT-'.$person->id, 'user_id' => $person->id, 'office_id' => $person->office_id, 'category' => $category, 'status' => $status]);
+        }
+        ArmisResourceProfile::query()->create(['resource_code' => 'TEST-DUPLICATE-'.$first->id, 'user_id' => $first->id, 'office_id' => $first->office_id, 'category' => 'SPECIALIST', 'status' => 'ACTIVE']);
+        ArmisResourceProfile::query()->where('user_id', $deletedProfile->id)->delete();
+        $deletedUser->delete();
         $url = "/api/aems/engagements/{$engagement->id}/preliminary-survey";
         $options = $this->getJson($url)->assertOk()->json('data.participantOptions');
         $this->assertContains($first->id, array_column($options, 'id'));
-        $this->assertNotContains($inactive->id, array_column($options, 'id'));
-        $this->assertNotContains($other->id, array_column($options, 'id'));
+        $this->assertContains($second->id, array_column($options, 'id'));
+        $this->assertSame(1, collect($options)->where('id', $first->id)->count());
+        foreach ([$inactive, $unregistered, $inactiveProfile, $deletedProfile, $deletedUser] as $invalid) {
+            $this->assertNotContains($invalid->id, array_column($options, 'id'));
+        }
         $this->putJson($url, ['section' => 'meeting', 'lockVersion' => null, 'data' => ['ciasParticipantIds' => [$first->id, $second->id]]])->assertOk()
             ->assertJsonPath('data.survey.meeting.ciasParticipantIds', [$first->id, $second->id])
             ->assertJsonPath('data.survey.meeting.ciasParticipants', $first->name.', '.$second->name);
-        foreach ([$inactive, $other] as $invalid) {
+        foreach ([$inactive, $unregistered, $inactiveProfile, $deletedProfile, $deletedUser] as $invalid) {
             $this->putJson($url, ['section' => 'meeting', 'lockVersion' => 1, 'data' => ['ciasParticipantIds' => [$invalid->id]]])->assertUnprocessable()->assertJsonValidationErrors('data.ciasParticipantIds.0');
         }
         $this->putJson($url, ['section' => 'meeting', 'lockVersion' => 1, 'data' => ['ciasParticipantIds' => []]])->assertOk()->assertJsonPath('data.survey.meeting.ciasParticipants', '');

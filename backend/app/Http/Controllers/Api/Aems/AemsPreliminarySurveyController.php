@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Aems;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Aems\AemsPreliminarySurveyRequest;
+use App\Models\ArmisResourceProfile;
 use App\Models\AuditEngagement;
 use App\Models\Document;
 use App\Models\DocumentVersion;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AemsPreliminarySurveyController extends Controller
 {
@@ -26,7 +28,7 @@ class AemsPreliminarySurveyController extends Controller
     {
         $this->access->authorizeEngagementAction($request->user(), $engagement, 'aems.planning-package.view');
 
-        return response()->json(['success' => true, 'data' => $this->workspace($engagement)]);
+        return response()->json(['success' => true, 'data' => $this->workspace($request, $engagement)]);
     }
 
     public function save(AemsPreliminarySurveyRequest $request, AuditEngagement $engagement)
@@ -47,7 +49,7 @@ class AemsPreliminarySurveyController extends Controller
         }
         $this->packages->saveSurveySection($request, $engagement, $input);
 
-        return response()->json(['success' => true, 'data' => $this->workspace($engagement->fresh())]);
+        return response()->json(['success' => true, 'data' => $this->workspace($request, $engagement->fresh())]);
     }
 
     public function upload(Request $request, AuditEngagement $engagement)
@@ -135,12 +137,28 @@ class AemsPreliminarySurveyController extends Controller
         }
     }
 
-    private function workspace(AuditEngagement $engagement): array
+    private function workspace(Request $request, AuditEngagement $engagement): array
     {
         $package = $engagement->planningPackage()->with('latestVersion')->first();
         $survey = data_get($package?->latestVersion?->preliminary_survey, 'workspace', []);
         $ids = collect([data_get($survey, 'meeting.noticeDocumentVersionId'), data_get($survey, 'auditee.budgetDocumentVersionId'), data_get($survey, 'ppsp.flowchartDocumentVersionId')])->filter();
+        $canEdit = $engagement->status === 'ENGAGEMENT_PLANNING'
+            && (! $package || in_array($package->status, ['DRAFT', 'RETURNED_FOR_REVISION'], true));
+        if ($canEdit) {
+            try {
+                $this->access->authorizeEngagementAction($request->user(), $engagement, $package ? 'aems.planning-package.update' : 'aems.planning-package.create');
+            } catch (HttpException) {
+                $canEdit = false;
+            }
+        }
 
-        return ['survey' => $survey, 'lockVersion' => $package?->lock_version, 'packageStatus' => $package?->status ?? 'DRAFT', 'canEdit' => $engagement->status === 'ENGAGEMENT_PLANNING' && (! $package || in_array($package->status, ['DRAFT', 'RETURNED_FOR_REVISION'], true)), 'attachments' => DocumentVersion::whereIn('id', $ids)->get()->map(fn ($v) => ['id' => $v->id, 'fileName' => $v->original_file_name])->values(), 'participantOptions' => User::query()->where('is_active', true)->whereHas('office', fn ($query) => $query->where('code', 'CIAS'))->orderBy('name')->get(['id', 'name', 'position', 'employee_id'])->map(fn ($person) => ['id' => $person->id, 'name' => $person->name, 'position' => $person->position, 'employeeId' => $person->employee_id])->values()];
+        return [
+            'survey' => $survey,
+            'lockVersion' => $package?->lock_version,
+            'packageStatus' => $package?->status ?? 'DRAFT',
+            'canEdit' => $canEdit,
+            'attachments' => DocumentVersion::whereIn('id', $ids)->get()->map(fn ($v) => ['id' => $v->id, 'fileName' => $v->original_file_name])->values(),
+            'participantOptions' => User::query()->where('is_active', true)->whereIn('id', ArmisResourceProfile::query()->where('status', 'ACTIVE')->select('user_id'))->orderBy('name')->get(['id', 'name', 'position', 'employee_id'])->map(fn ($person) => ['id' => $person->id, 'name' => $person->name, 'position' => $person->position, 'employeeId' => $person->employee_id])->values(),
+        ];
     }
 }

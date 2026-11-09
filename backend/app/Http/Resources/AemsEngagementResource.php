@@ -146,6 +146,7 @@ class AemsEngagementResource extends JsonResource
                     'plannedPersonDays' => (float) $member->planned_person_days,
                     'assignedFrom' => $member->assigned_from?->toDateString(),
                     'assignedUntil' => $member->assigned_until?->toDateString(),
+                    'endedAt' => $member->ended_at?->toISOString(),
                     'isActive' => $member->is_active,
                     'user' => $member->relationLoaded('user')
                         ? $this->user($member->user) : null,

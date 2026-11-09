@@ -30,6 +30,7 @@ class AemsEngagementRegistryService
         private readonly IapEngagementGateway $iap,
         private readonly AemsAccessService $access,
         private readonly RuntimeConfiguration $runtime,
+        private readonly AemsTeamService $teams,
     ) {}
 
     /** @return Collection<int, IapPlanEngagement> */
@@ -106,6 +107,7 @@ class AemsEngagementRegistryService
             $engagement->auditAreas()->sync($source->auditAreas->pluck('id')->all());
             $engagement->auditFocuses()->sync($source->auditFocuses->pluck('id')->all());
             $this->iap->markImported($source, $engagement->id);
+            $this->teams->syncInitialPlan($request, $engagement);
 
             $newValues = $this->auditSnapshot($engagement);
             $this->support->event(
@@ -190,6 +192,7 @@ class AemsEngagementRegistryService
             if (! empty($validated['officeIds']) && ! empty($validated['auditAreaIds'])) {
                 $this->syncCoverage($engagement, $validated);
             }
+            $this->teams->syncInitialPlan($request, $engagement);
             if ($request->hasFile('supportingDocument')) {
                 $version = $this->storeAuthorityDocument(
                     $request,
@@ -239,7 +242,7 @@ class AemsEngagementRegistryService
                     ],
                 ]);
             }
-            if (! in_array($locked->status, ['DRAFT', 'AUTHORIZATION_PREPARATION', 'AUTHORIZED'], true)) {
+            if (! in_array($locked->status, ['DRAFT', 'AUTHORIZATION_PREPARATION', 'AUTHORIZED', 'ENGAGEMENT_PLANNING'], true)) {
                 throw ValidationException::withMessages([
                     'status' => ['Engagement registry details are frozen after fieldwork begins.'],
                 ]);
@@ -263,6 +266,13 @@ class AemsEngagementRegistryService
             }
             $oldValues = $this->auditSnapshot($locked);
             $attributes = $this->mutableAttributes($validated);
+            $teamChanged = array_key_exists('initialTeamPlan', $validated)
+                && $validated['initialTeamPlan'] !== $locked->initial_team_plan;
+            if (! array_key_exists('initialTeamPlan', $validated)) {
+                unset($attributes['initial_team_plan']);
+            } elseif ($teamChanged) {
+                $this->access->authorizeEngagementAction($request->user(), $locked, 'aems.team.assign');
+            }
             // Structured SCR-212 scope remains controlled by the dedicated
             // Scope workspace. The engagement-definition narratives are
             // ordinary registry fields and may be updated while editable.
@@ -305,6 +315,9 @@ class AemsEngagementRegistryService
             ])->save();
             if ($hasOfficeCoverage && $hasAreaCoverage) {
                 $this->syncCoverage($locked, $validated);
+            }
+            if ($teamChanged) {
+                $this->teams->syncInitialPlan($request, $locked);
             }
 
             $newValues = $this->auditSnapshot($locked);
