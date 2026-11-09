@@ -29,6 +29,7 @@ class AemsPlanningPackageService
         private readonly AemsAccessService $access,
         private readonly AemsSupport $support,
         private readonly AemsNotificationService $notifications,
+        private readonly AemsSurveyReviewService $surveyReviews,
     ) {}
 
     /** @return array<string, mixed> */
@@ -111,19 +112,40 @@ class AemsPlanningPackageService
                 })->all();
                 return $matrix;
             })->all();
-            $payload['preliminarySurvey']['workspace'][$input['section']] = $input['data'];
-            $payload['changeReason'] = 'Updated preliminary survey: '.$input['section'];
-            if (! $package) return $this->create($request, $lockedEngagement, $payload);
-            $payload['lockVersion'] = $expected;
-            return $this->update($request, $lockedEngagement, $package, $payload);
+            $section = $input['section'];
+            $reviews = $this->surveyReviews->reviews($package);
+            $before = $payload['preliminarySurvey']['workspace'][$section] ?? [];
+            $oldReview = $reviews[$section] ?? [];
+            $action = $input['reviewAction'] ?? 'SAVE';
+            if ($action === 'SAVE') {
+                $reviews[$section] = $this->surveyReviews->save($request->user(), $before, $input['data'], $oldReview);
+                $payload['preliminarySurvey']['workspace'][$section] = $input['data'];
+            } else {
+                $reviews[$section] = $this->surveyReviews->transition($request->user(), $lockedEngagement, $package, $oldReview, $action, $input['comment'] ?? null);
+            }
+            $payload['preliminarySurvey']['workspaceReviews'] = $reviews;
+            $payload['changeReason'] = 'Preliminary survey '.$section.': '.$action;
+            if (! $package) {
+                $saved = $this->create($request, $lockedEngagement, $payload, surveyWrite: true);
+            } else {
+                $payload['lockVersion'] = $expected;
+                $saved = $this->update($request, $lockedEngagement, $package, $payload, surveyWrite: true);
+            }
+            $this->support->event($request, $lockedEngagement, 'SURVEY_SECTION_'.$action, $oldReview['status'] ?? 'DRAFT', $reviews[$section]['status'], $oldReview, $reviews[$section], $input['comment'] ?? null, 'PRELIMINARY_SURVEY', $saved->id, $saved->current_version_number, $section);
+            $this->support->audit($request, 'aems.preliminary-survey.'.strtolower($action), $lockedEngagement, $oldReview, $reviews[$section], ['section' => $section, 'versionNumber' => $saved->current_version_number]);
+
+            return $saved;
         });
     }
 
     /** @param array<string,mixed> $attributes */
-    public function create(Request $request, AuditEngagement $engagement, array $attributes): AemsPlanningPackage
+    public function create(Request $request, AuditEngagement $engagement, array $attributes, bool $surveyWrite = false): AemsPlanningPackage
     {
         $this->access->authorizeEngagementAction($request->user(), $engagement, 'aems.planning-package.create');
-        return DB::transaction(function () use ($request, $engagement, $attributes): AemsPlanningPackage {
+        return DB::transaction(function () use ($request, $engagement, $attributes, $surveyWrite): AemsPlanningPackage {
+            if (! $surveyWrite) {
+                $attributes = $this->preserveSurveyWorkflow($attributes, []);
+            }
             $locked = AuditEngagement::query()->lockForUpdate()->findOrFail($engagement->id);
             if ($locked->status !== 'ENGAGEMENT_PLANNING') {
                 throw ValidationException::withMessages([
@@ -153,10 +175,10 @@ class AemsPlanningPackageService
     }
 
     /** @param array<string,mixed> $attributes */
-    public function update(Request $request, AuditEngagement $engagement, AemsPlanningPackage $package, array $attributes): AemsPlanningPackage
+    public function update(Request $request, AuditEngagement $engagement, AemsPlanningPackage $package, array $attributes, bool $surveyWrite = false): AemsPlanningPackage
     {
         $this->access->authorizeEngagementAction($request->user(), $engagement, 'aems.planning-package.update');
-        return DB::transaction(function () use ($request, $engagement, $package, $attributes): AemsPlanningPackage {
+        return DB::transaction(function () use ($request, $engagement, $package, $attributes, $surveyWrite): AemsPlanningPackage {
             $locked = $this->lockPackage($engagement, $package, (int) $attributes['lockVersion']);
             if ($engagement->status !== 'ENGAGEMENT_PLANNING') {
                 throw ValidationException::withMessages([
@@ -167,12 +189,29 @@ class AemsPlanningPackageService
                 throw ValidationException::withMessages(['status' => ['Only a draft or returned planning package can be edited.']]);
             }
             $old = $locked->latestVersion()->firstOrFail();
+            if (! $surveyWrite) {
+                $attributes = $this->preserveSurveyWorkflow($attributes, $old->preliminary_survey ?? []);
+            }
             $number = $locked->current_version_number + 1;
             $version = $this->createVersion($request, $engagement, $locked, $attributes, $number, $attributes['changeReason'] ?? null);
             $locked->update(['current_version_number' => $number, 'prepared_by' => $request->user()->id, 'submitted_by' => null, 'submitted_at' => null, 'approved_by' => null, 'approved_at' => null, 'lock_version' => $locked->lock_version + 1]);
             $this->logChange($request, $engagement, $locked, $version, 'UPDATE', $old, $version, $attributes['changeReason'] ?? null);
             return $locked->fresh();
         });
+    }
+
+    private function preserveSurveyWorkflow(array $attributes, array $previous): array
+    {
+        foreach (['workspace', 'workspaceReviews'] as $key) {
+            if (isset($attributes['preliminarySurvey'][$key]) && $attributes['preliminarySurvey'][$key] !== ($previous[$key] ?? [])) {
+                throw ValidationException::withMessages(['preliminarySurvey' => ['Save section inputs and review actions through the Preliminary Survey workspace.']]);
+            }
+            if (array_key_exists($key, $previous)) {
+                $attributes['preliminarySurvey'][$key] = $previous[$key];
+            }
+        }
+
+        return $attributes;
     }
 
     public function transition(Request $request, AuditEngagement $engagement, AemsPlanningPackage $package, string $action, int $lockVersion, ?string $comment): AemsPlanningPackage
@@ -288,6 +327,7 @@ class AemsPlanningPackageService
         $legacyChecks = [
             ['key' => 'iapLineage', 'label' => 'IAP source lineage is preserved', 'met' => $this->lineageValid($engagement, $package)],
             ['key' => 'survey', 'label' => 'Preliminary survey is complete', 'met' => $this->surveyComplete($survey)],
+            ['key' => 'surveySectionReviews', 'label' => 'Saved preliminary survey sections are approved', 'met' => collect(array_keys($survey['workspace'] ?? []))->every(fn ($section) => ($survey['workspaceReviews'][$section]['status'] ?? 'DRAFT') === 'APPROVED')],
             ['key' => 'objectives', 'label' => 'At least one planning objective exists', 'met' => $objectives->isNotEmpty()],
             ['key' => 'processFlows', 'label' => 'Process flow documentation is complete', 'met' => $flows->isNotEmpty() && $flows->every(fn ($flow) => filled($flow->title) && (filled($flow->description) || filled($flow->document_version_id) || filled($flow->source_reference)))],
             ['key' => 'riskMatrix', 'label' => 'Risk matrix and risk items exist', 'met' => $matrices->isNotEmpty() && $items->isNotEmpty()],

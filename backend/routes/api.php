@@ -627,6 +627,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:aems.aep.revise');
     Route::get('/aems/engagements/{engagement}/preliminary-survey', [AemsPreliminarySurveyController::class, 'show'])->middleware('permission:aems.planning-package.view');
     Route::put('/aems/engagements/{engagement}/preliminary-survey', [AemsPreliminarySurveyController::class, 'save'])->middleware('permission:aems.planning-package.create|aems.planning-package.update');
+    Route::post('/aems/engagements/{engagement}/preliminary-survey/review', [AemsPreliminarySurveyController::class, 'transition'])->middleware('permission:aems.planning-package.view');
     Route::post('/aems/engagements/{engagement}/preliminary-survey/attachments', [AemsPreliminarySurveyController::class, 'upload'])->middleware('permission:aems.planning-package.create|aems.planning-package.update');
     Route::get('/aems/engagements/{engagement}/preliminary-survey/attachments/template', [AemsPreliminarySurveyController::class, 'template'])->middleware('permission:aems.planning-package.view');
     Route::get('/aems/engagements/{engagement}/preliminary-survey/attachments/{version}', [AemsPreliminarySurveyController::class, 'download'])->whereNumber('version')->middleware('permission:aems.planning-package.view');

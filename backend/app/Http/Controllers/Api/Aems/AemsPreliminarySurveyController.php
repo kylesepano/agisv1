@@ -13,16 +13,16 @@ use App\Models\User;
 use App\Services\AemsAccessService;
 use App\Services\AemsPlanningPackageService;
 use App\Services\AemsSupport;
+use App\Services\AemsSurveyReviewService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AemsPreliminarySurveyController extends Controller
 {
-    public function __construct(private readonly AemsPlanningPackageService $packages, private readonly AemsAccessService $access, private readonly AemsSupport $support) {}
+    public function __construct(private readonly AemsPlanningPackageService $packages, private readonly AemsAccessService $access, private readonly AemsSupport $support, private readonly AemsSurveyReviewService $reviews) {}
 
     public function show(Request $request, AuditEngagement $engagement)
     {
@@ -88,6 +88,20 @@ class AemsPreliminarySurveyController extends Controller
         return response()->json(['success' => true, 'data' => ['id' => $version->id, 'fileName' => $version->original_file_name]], 201);
     }
 
+    public function transition(Request $request, AuditEngagement $engagement)
+    {
+        $this->access->authorizeEngagementAction($request->user(), $engagement, 'aems.planning-package.view');
+        $input = $request->validate([
+            'section' => ['required', 'in:meeting,auditee,ppsp,ics'],
+            'action' => ['required', 'in:SUBMIT,APPROVE,RETURN'],
+            'lockVersion' => ['required', 'integer', 'min:1'],
+            'comment' => ['nullable', 'string', 'max:4000'],
+        ]);
+        $this->packages->saveSurveySection($request, $engagement, [...$input, 'reviewAction' => $input['action']]);
+
+        return response()->json(['success' => true, 'data' => $this->workspace($request, $engagement->fresh())]);
+    }
+
     public function download(Request $request, AuditEngagement $engagement, int $version)
     {
         $this->access->authorizeEngagementAction($request->user(), $engagement, 'aems.planning-package.view');
@@ -142,21 +156,18 @@ class AemsPreliminarySurveyController extends Controller
         $package = $engagement->planningPackage()->with('latestVersion')->first();
         $survey = data_get($package?->latestVersion?->preliminary_survey, 'workspace', []);
         $ids = collect([data_get($survey, 'meeting.noticeDocumentVersionId'), data_get($survey, 'auditee.budgetDocumentVersionId'), data_get($survey, 'ppsp.flowchartDocumentVersionId')])->filter();
-        $canEdit = $engagement->status === 'ENGAGEMENT_PLANNING'
-            && (! $package || in_array($package->status, ['DRAFT', 'RETURNED_FOR_REVISION'], true));
-        if ($canEdit) {
-            try {
-                $this->access->authorizeEngagementAction($request->user(), $engagement, $package ? 'aems.planning-package.update' : 'aems.planning-package.create');
-            } catch (HttpException) {
-                $canEdit = false;
-            }
-        }
+        $reviews = $this->reviews->reviews($package);
+        $capabilities = collect(AemsSurveyReviewService::SECTIONS)->mapWithKeys(fn ($section) => [
+            $section => $this->reviews->capabilities($request->user(), $engagement, $package, $reviews[$section] ?? []),
+        ])->all();
 
         return [
             'survey' => $survey,
             'lockVersion' => $package?->lock_version,
             'packageStatus' => $package?->status ?? 'DRAFT',
-            'canEdit' => $canEdit,
+            'canEdit' => $this->reviews->canWrite($request->user(), $engagement, $package),
+            'sectionReviews' => $reviews,
+            'sectionCapabilities' => $capabilities,
             'attachments' => DocumentVersion::whereIn('id', $ids)->get()->map(fn ($v) => ['id' => $v->id, 'fileName' => $v->original_file_name])->values(),
             'participantOptions' => User::query()->where('is_active', true)->whereIn('id', ArmisResourceProfile::query()->where('status', 'ACTIVE')->select('user_id'))->orderBy('name')->get(['id', 'name', 'position', 'employee_id'])->map(fn ($person) => ['id' => $person->id, 'name' => $person->name, 'position' => $person->position, 'employeeId' => $person->employee_id])->values(),
         ];

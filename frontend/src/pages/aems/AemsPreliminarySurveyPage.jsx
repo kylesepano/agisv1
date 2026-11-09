@@ -8,9 +8,17 @@ import SearchableSelect from "../../components/ui/SearchableSelect";
 import { icsPanels, meetingFields, ppspPanels, principles, profileFields, surveySections, tables } from "../../components/aems/surveyDefinition";
 import "./aems-survey.css";
 
-function Field({ field, value, onChange, disabled }) {
+function savedAt(value) {
+  return value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "";
+}
+
+function SavedStamp({ stamp }) {
+  return stamp?.user && <small className="survey-saved-by">Saved by {stamp.user.name} · {savedAt(stamp.at)}</small>;
+}
+
+function Field({ field, value, onChange, disabled, stamp }) {
   const [key, title, type = "text"] = field;
-  return <label className={`survey-field survey-field-${key}`}><span>{title}</span>{Array.isArray(type) ? <SearchableSelect disabled={disabled} options={type.map((item) => ({ value: String(item), label: String(item) }))} value={value == null ? "" : String(value)} placeholder={`Select ${title.toLowerCase()}`} onChange={onChange} /> : type === "textarea" ? <textarea disabled={disabled} value={value ?? ""} onChange={(event) => onChange(event.target.value)} /> : <input type={type === "readonly" ? "text" : type} min={type === "number" ? 0 : undefined} step={type === "number" ? "0.01" : undefined} readOnly={type === "readonly"} disabled={disabled} value={value ?? ""} onChange={(event) => onChange(event.target.value)} />}</label>;
+  return <label className={`survey-field survey-field-${key}`}><span>{title}</span>{Array.isArray(type) ? <SearchableSelect disabled={disabled} options={type.map((item) => ({ value: String(item), label: String(item) }))} value={value == null ? "" : String(value)} placeholder={`Select ${title.toLowerCase()}`} onChange={onChange} /> : type === "textarea" ? <textarea aria-label={title} disabled={disabled} value={value ?? ""} onChange={(event) => onChange(event.target.value)} /> : <input aria-label={title} type={type === "readonly" ? "text" : type} min={type === "number" ? 0 : undefined} step={type === "number" ? "0.01" : undefined} readOnly={type === "readonly"} disabled={disabled} value={value ?? ""} onChange={(event) => onChange(event.target.value)} />}<SavedStamp stamp={stamp} /></label>;
 }
 
 function Upload({ title, fileId, attachments, disabled, onUpload, onDownload }) {
@@ -67,7 +75,9 @@ export default function AemsPreliminarySurveyPage() {
   }, [dirty]);
 
   const current = survey[section] ?? {};
-  const editable = workspace?.canEdit && hasPermission(user, workspace?.lockVersion ? "aems.planning-package.update" : "aems.planning-package.create");
+  const review = workspace?.sectionReviews?.[section] ?? {};
+  const capabilities = workspace?.sectionCapabilities?.[section] ?? {};
+  const editable = (capabilities.canEdit ?? workspace?.canEdit) && hasPermission(user, workspace?.lockVersion ? "aems.planning-package.update" : "aems.planning-package.create");
   const definition = surveySections.find(([key]) => key === section);
   const Icon = { meeting: MessageSquare, auditee: Building2, ppsp: Workflow, ics: ShieldCheck }[section];
   const planningUrl = `/audit-engagement-management/${engagementId}?tab=planning&activity=0`;
@@ -82,8 +92,28 @@ export default function AemsPreliminarySurveyPage() {
     setSaving(true); setError(""); setNotice("");
     try {
       const result = await aemsPlanningPackageApi.saveSurvey(engagementId, { section, data, lockVersion: workspace.lockVersion ?? null });
-      setWorkspace(result); setSurvey(result.survey ?? {}); setDirty(false); setNotice("Draft saved successfully."); return true;
-    } catch (reason) { setError(reason.message); return false; } finally { setSaving(false); }
+      setWorkspace(result); setSurvey(result.survey ?? {}); setDirty(false); setNotice(result.sectionReviews?.[section]?.status === "APPROVED" ? "Saved and automatically approved by the CIAS head." : "Draft saved successfully."); return result;
+    } catch (reason) { setError(reason.message); return null; } finally { setSaving(false); }
+  }
+  async function reviewAction(action) {
+    let comment;
+    if (action === "RETURN") {
+      comment = window.prompt("Instructions for revising this section:");
+      if (comment == null) return;
+    }
+    let lockVersion = workspace.lockVersion;
+    if (dirty) {
+      if (action !== "SUBMIT") { setError("Save or discard your edits before reviewing the saved draft."); return; }
+      const saved = await save();
+      if (!saved) return;
+      lockVersion = saved.lockVersion;
+    }
+    setSaving(true); setError(""); setNotice("");
+    try {
+      const result = await aemsPlanningPackageApi.reviewSurvey(engagementId, { section, action, comment, lockVersion });
+      setWorkspace(result); setSurvey(result.survey ?? {}); setDirty(false);
+      setNotice({ SUBMIT: "Section submitted for review.", APPROVE: "Section approved successfully.", RETURN: "Section returned for revision." }[action]);
+    } catch (reason) { setError(reason.message); } finally { setSaving(false); }
   }
   async function upload(key, file) {
     const attachment = await aemsPlanningPackageApi.uploadSurveyFile(engagementId, file);
@@ -93,18 +123,22 @@ export default function AemsPreliminarySurveyPage() {
   async function download(file) {
     try { await documentApi.downloadFile(`/api/aems/engagements/${engagementId}/preliminary-survey/attachments/${file.id}`, file.fileName); } catch (reason) { setError(reason.message); }
   }
-  function attachment(title, key) { return <Upload title={title} fileId={current[key]} attachments={workspace?.attachments ?? []} disabled={!editable || saving} onUpload={(file) => upload(key, file)} onDownload={download} />; }
-  function fields(items, values = current, update = setField, disabled = !editable || saving) { return items.map((field) => <Field key={field[0]} field={field} value={values[field[0]]} disabled={disabled} onChange={(value) => update(field[0], value)} />); }
+  function stampFor(path) {
+    return Object.entries(review.fieldSaves ?? {}).filter(([key]) => key === path || key.startsWith(`${path}.`)).map(([, stamp]) => stamp).sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""))[0];
+  }
+  function attachment(title, key) { return <div><Upload title={title} fileId={current[key]} attachments={workspace?.attachments ?? []} disabled={!editable || saving} onUpload={(file) => upload(key, file)} onDownload={download} /><SavedStamp stamp={stampFor(key)} /></div>; }
+  function fields(items, values = current, update = setField, disabled = !editable || saving) { return items.map((field) => <Field key={field[0]} field={field} value={values[field[0]]} stamp={stampFor(values === current ? field[0] : editor?.index != null ? `${editor.key}.${editor.stampIndex ?? editor.index}.${field[0]}` : "__new")} disabled={disabled} onChange={(value) => update(field[0], value)} />); }
 
   function renderTable(key, rows = current[key] ?? [], firstNumber = 1) {
     const config = tables[key];
     function openEditor(event, index, row, view) {
       event.currentTarget.closest("details").open = false;
-      setEditor({ key, index, row: { ...row }, view });
+      setEditor({ key, index, stampIndex: key === "assessments" ? (current.assessments ?? []).findIndex((item) => item.principleId === row.principleId) : index, row: { ...row }, view });
     }
     return <div className="survey-table-section">{config.add && <div className="survey-table-toolbar"><button type="button" className="survey-button" disabled={!editable || saving} onClick={() => setEditor({ key, index: null, row: {}, view: false })}>+ {config.add}</button></div>}<div className="survey-table-scroll"><table><thead><tr>{key !== "programs" && <th>No.</th>}{config.fields.map(([name, title]) => <th key={name}>{title}</th>)}<th><span className="sr-only">Actions</span></th></tr></thead><tbody>{Array.from({ length: Math.max(rows.length, key === "assessments" ? rows.length : 4) }, (_, index) => {
       const row = rows[index];
-      return <tr key={row?.principleId ?? index}>{key !== "programs" && <td>{firstNumber + index}</td>}{config.fields.map(([name]) => <td key={name}>{row?.[name] ?? ""}</td>)}<td>{row && <details className="survey-row-menu"><summary aria-label={`Actions for row ${index + firstNumber}`}><MoreHorizontal size={22} /></summary><div><button type="button" onClick={(event) => openEditor(event, index, row, true)}>View</button><button type="button" disabled={!editable || saving} onClick={(event) => openEditor(event, index, row, false)}>Edit</button>{key !== "assessments" && <button type="button" disabled={!editable || saving} onClick={() => { if (window.confirm("Remove this item from the draft?")) { const next = rows.filter((_, at) => at !== index); setField(key, next); } }}>Remove</button>}</div></details>}</td></tr>;
+      const storedIndex = key === "assessments" ? (current.assessments ?? []).findIndex((item) => item.principleId === row?.principleId) : index;
+      return <tr key={row?.principleId ?? index}>{key !== "programs" && <td>{firstNumber + index}</td>}{config.fields.map(([name]) => <td key={name}>{row?.[name] ?? ""}{row && <SavedStamp stamp={stampFor(`${key}.${storedIndex}.${name}`)} />}</td>)}<td>{row && <details className="survey-row-menu"><summary aria-label={`Actions for row ${index + firstNumber}`}><MoreHorizontal size={22} /></summary><div><button type="button" onClick={(event) => openEditor(event, index, row, true)}>View</button><button type="button" disabled={!editable || saving} onClick={(event) => openEditor(event, index, row, false)}>Edit</button>{key !== "assessments" && <button type="button" disabled={!editable || saving} onClick={() => { if (window.confirm("Remove this item from the draft?")) { const next = rows.filter((_, at) => at !== index); setField(key, next); } }}>Remove</button>}</div></details>}</td></tr>;
     })}</tbody></table></div></div>;
   }
   function assessmentRows(start, end) {
@@ -136,13 +170,22 @@ export default function AemsPreliminarySurveyPage() {
       <div className={`survey-window-body ${editor ? `has-editor editor-${editor.key}` : ""}`}>
         <div className="survey-heading"><Icon size={75} strokeWidth={1.3} /><div><h1>{definition[1]} {definition[2]}{section === "ics" && " (Internal Control System)"}</h1>{section === "ics" && <p>Assess the auditee’s internal control system using the 5 ICSPPS components and 16 principles. This is a preliminary understanding, not a formal effectiveness assessment.</p>}</div>{section !== "ppsp" && <span>{completed} of {section === "ics" ? 16 : completionValues.length} items completed</span>}</div>
         {!editable && <p className="survey-notice">This planning package is read-only at its current stage or with your current permissions.</p>}
+        <div className="survey-review-status" aria-label="Section review status">
+          <strong className={`survey-review-badge survey-review-${review.status ?? "DRAFT"}`}>{({ DRAFT: "Draft", PENDING_REVIEW: "Pending Review", APPROVED: "Approved", RETURNED_FOR_REVISION: "Returned for Revision" })[review.status ?? "DRAFT"]}</strong>
+          {dirty && <span>Unsaved changes</span>}
+          {review.lastSavedBy && <span>Last saved by {review.lastSavedBy.name} · {savedAt(review.lastSavedAt)}</span>}
+          {review.submittedBy && <span>Submitted by {review.submittedBy.name} · {savedAt(review.submittedAt)}</span>}
+          {review.approvedBy && <span>Approved by {review.approvedBy.name} · {savedAt(review.approvedAt)}</span>}
+          {capabilities.autoApprove && <span>Your saves are automatically approved as CIAS head.</span>}
+          {review.returnComment && <p>Returned by {review.returnedBy?.name}: {review.returnComment}</p>}
+        </div>
         {error && <p role="alert" className="survey-error">{error}</p>}{notice && <p role="status" className="survey-notice">{notice}</p>}
         {section === "meeting" && <div className="survey-meeting-form">
           <div className="survey-meeting-top">{fields(meetingFields.filter(([key]) => ["proposedAt", "venue"].includes(key)))}</div>
           <div className="survey-meeting-columns">
             <div className="survey-meeting-column">{fields(meetingFields.filter(([key]) => ["focalPerson", "auditeeParticipants", "documentsNeeded", "actualDate", "mattersDiscussed"].includes(key)))}</div>
             <div className="survey-meeting-column">
-              <div className="survey-field"><span id="cias-participants-label">CIAS Participants</span><div role="group" aria-labelledby="cias-participants-label"><SearchableSelect multiple disabled={!editable || saving} options={(workspace.participantOptions ?? []).map((person) => ({ value: person.id, label: person.name, description: person.position || person.employeeId, keywords: `${person.employeeId ?? ""} ${person.position ?? ""}` }))} value={current.ciasParticipantIds ?? []} onChange={(value) => setField("ciasParticipantIds", value)} placeholder="Search and select CIAS participants" searchPlaceholder="Search CIAS participants..." emptyMessage="No active CIAS participants are available." /></div>{!Array.isArray(current.ciasParticipantIds) && current.ciasParticipants && <small className="text-slate-600">Previously recorded: {current.ciasParticipants}</small>}</div>
+              <div className="survey-field"><span id="cias-participants-label">CIAS Participants</span><div role="group" aria-labelledby="cias-participants-label"><SearchableSelect multiple disabled={!editable || saving} options={(workspace.participantOptions ?? []).map((person) => ({ value: person.id, label: person.name, description: person.position || person.employeeId, keywords: `${person.employeeId ?? ""} ${person.position ?? ""}` }))} value={current.ciasParticipantIds ?? []} onChange={(value) => setField("ciasParticipantIds", value)} placeholder="Search and select CIAS participants" searchPlaceholder="Search CIAS participants..." emptyMessage="No active CIAS participants are available." /></div><SavedStamp stamp={stampFor("ciasParticipantIds") ?? stampFor("ciasParticipants")} />{!Array.isArray(current.ciasParticipantIds) && current.ciasParticipants && <small className="text-slate-600">Previously recorded: {current.ciasParticipants}</small>}</div>
               {fields(meetingFields.filter(([key]) => key === "mattersToDiscuss"))}
               <div className="survey-meeting-notice">{attachment("Notice of Preliminary Meeting", "noticeDocumentVersionId")}<button className="survey-text-link" type="button" onClick={() => download({ id: "template", fileName: "Notice_of_Preliminary_Meeting_Template.docx" })}>Download Template: Notice of Preliminary Meeting</button></div>
             </div>
@@ -152,7 +195,13 @@ export default function AemsPreliminarySurveyPage() {
         {section === "ppsp" && <div className="survey-accordions">{ppspPanels.map(([key, number, title]) => <section key={key}><button aria-expanded={panel === key} type="button" className="survey-accordion" onClick={() => changeView(section, panel === key ? "" : key)}><strong>{number}</strong><span>{title}</span>{panel === key ? <ChevronDown size={20} /> : <ChevronRight size={20} />}</button>{panel === key && <div className="survey-accordion-content">{key === "profile" ? <div className="survey-form-grid">{fields(profileFields)}</div> : key === "flowchart" ? <div className="survey-flow-upload">{attachment("Process Flowchart", "flowchartDocumentVersionId")}</div> : renderTable(key)}</div>}</section>)}</div>}
         {section === "ics" && <div className="survey-accordions">{icsPanels.map(([key, number, title, start, end]) => <section key={key}><button aria-expanded={panel === key} type="button" className="survey-accordion" onClick={() => changeView(section, panel === key ? "" : key)}><strong>{number}</strong><span>{title}</span>{panel === key ? <ChevronDown size={20} /> : <ChevronRight size={20} />}</button>{panel === key && renderTable("assessments", assessmentRows(start, end), start)}</section>)}</div>}
         {editor && <section ref={editorRef} className="survey-editor" aria-label={`${editor.view ? "View" : "Add/Edit"} ${tables[editor.key].title}`}><header className="survey-window-bar"><span>{editor.view ? "View" : "Add/Edit"} {tables[editor.key].title}</span><button type="button" aria-label="Close item editor" onClick={() => setEditor(null)}><X size={20} /></button></header>{error && <p role="alert" className="survey-error">{error}</p>}<div className={`survey-editor-fields ${editor.key === "risks" ? "survey-form-grid" : ""}`}>{fields(tables[editor.key].fields, { ...editor.row, ...(editor.key === "risks" ? { riskRating: editor.row.likelihood && editor.row.impact ? Number(editor.row.likelihood) * Number(editor.row.impact) : "" } : {}) }, (key, value) => setEditor((previous) => ({ ...previous, row: { ...previous.row, [key]: value } })), editor.view || !editable || saving)}</div><footer><button type="button" className="survey-button" onClick={() => setEditor(null)}><ArrowLeft size={18} /> Back to {definition[1]} workspace</button>{!editor.view && <button type="button" className="survey-button" disabled={saving} onClick={updateRow}>{saving ? "Saving…" : "Update to Table"}</button>}</footer></section>}
-        <footer className="survey-footer"><Link className="survey-button" to={planningUrl} onClick={(event) => { if (dirty && !window.confirm("Leave without saving your draft?")) event.preventDefault(); }}><ArrowLeft size={18} /> Back to Planning Workspace</Link><button type="button" className="survey-button" disabled={!editable || saving || !!editor} onClick={() => save()}>{saving ? "Saving…" : "Save Draft"}</button><details className="survey-more"><summary className="survey-button survey-primary">More Actions <ChevronDown size={16} /></summary><div>{surveySections.map(([key, number, title]) => <button type="button" key={key} onClick={(event) => { changeView(key); event.currentTarget.closest("details").open = false; }}>{number} {title}</button>)}<Link to={`/audit-engagement-management/planning-package?engagementId=${engagementId}&section=readiness`}>Planning Review & Approval</Link></div></details></footer>
+        <footer className="survey-footer"><Link className="survey-button" to={planningUrl} onClick={(event) => { if (dirty && !window.confirm("Leave without saving your draft?")) event.preventDefault(); }}><ArrowLeft size={18} /> Back to Planning Workspace</Link><button type="button" className="survey-button" disabled={!editable || saving || !!editor} onClick={() => save()}>{saving ? "Saving…" : "Save Draft"}</button>
+          <details className="survey-more"><summary aria-label="Go to" className="survey-button">Go to <ChevronDown size={16} /></summary><div>{surveySections.map(([key, number, title]) => <button type="button" key={key} onClick={(event) => { changeView(key); event.currentTarget.closest("details").open = false; }}>{number} {title}</button>)}<Link to={`/audit-engagement-management/planning-package?engagementId=${engagementId}&section=readiness`}>Planning Review & Approval</Link></div></details>
+          <details className="survey-more"><summary aria-label="More Actions" className="survey-button survey-primary">More Actions <ChevronDown size={16} /></summary><div>
+            {[["SUBMIT", "canSubmit", "Submit for Review"], ["APPROVE", "canApprove", "Approve Draft"], ["RETURN", "canReturn", "Return for Revision"]].filter(([, permission]) => capabilities[permission]).map(([action, , title]) => <button type="button" key={action} disabled={saving || !!editor || (dirty && action !== "SUBMIT")} onClick={(event) => { event.currentTarget.closest("details").open = false; reviewAction(action); }}>{title}</button>)}
+            {!capabilities.canSubmit && !capabilities.canApprove && !capabilities.canReturn && <p className="survey-menu-hint">{capabilities.autoApprove ? "Your saved sections are automatically approved." : review.status === "APPROVED" ? "This section is approved. Saving changed inputs starts a new draft." : review.status === "PENDING_REVIEW" ? "Awaiting approval from the team leader or CIAS head. Team leaders’ own input requires the CIAS head." : "Save your draft to submit it for review."}</p>}
+          </div></details>
+        </footer>
       </div>
     </section>
   </main>;

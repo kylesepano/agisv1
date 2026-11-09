@@ -2149,6 +2149,9 @@ export const aemsPlanningPackageApi = {
   async saveSurvey(engagementId, payload) {
     return request(`/api/aems/engagements/${engagementId}/preliminary-survey`, { method: "PUT", body: payload, csrf: true });
   },
+  async reviewSurvey(engagementId, payload) {
+    return request(`/api/aems/engagements/${engagementId}/preliminary-survey/review`, { method: "POST", body: payload, csrf: true });
+  },
   async uploadSurveyFile(engagementId, file) {
     const payload = new FormData();
     payload.append("file", file);
