@@ -2143,6 +2143,17 @@ export const aemsAepApi = {
 };
 
 export const aemsPlanningPackageApi = {
+  async survey(engagementId) {
+    return request(`/api/aems/engagements/${engagementId}/preliminary-survey`);
+  },
+  async saveSurvey(engagementId, payload) {
+    return request(`/api/aems/engagements/${engagementId}/preliminary-survey`, { method: "PUT", body: payload, csrf: true });
+  },
+  async uploadSurveyFile(engagementId, file) {
+    const payload = new FormData();
+    payload.append("file", file);
+    return request(`/api/aems/engagements/${engagementId}/preliminary-survey/attachments`, { method: "POST", body: payload, csrf: true });
+  },
   async show(engagementId) {
     return request(`/api/aems/engagements/${engagementId}/planning-package`);
   },

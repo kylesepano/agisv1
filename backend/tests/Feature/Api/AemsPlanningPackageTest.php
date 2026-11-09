@@ -13,6 +13,8 @@ use App\Models\Office;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -256,18 +258,99 @@ class AemsPlanningPackageTest extends TestCase
         $this->assertDatabaseMissing('aems_risk_matrices', ['planning_package_version_id' => 3, 'matrix_code' => 'RM-2']);
     }
 
+    public function test_reference_survey_sections_round_trip_and_preserve_existing_planning_graph(): void
+    {
+        [$prepared, , , $engagement, $procedure] = $this->fixture();
+        Sanctum::actingAs($prepared);
+        $this->postJson("/api/aems/engagements/{$engagement->id}/planning-package", $this->completePayload($procedure->id))->assertCreated();
+        $url = "/api/aems/engagements/{$engagement->id}/preliminary-survey";
+        $this->putJson($url, ['section' => 'meeting', 'lockVersion' => 1, 'data' => ['venue' => 'CIAS Office', 'proposedAt' => '2026-11-10T09:00', 'mattersDiscussed' => 'Discussed records.']])->assertOk()->assertJsonPath('data.lockVersion', 2)->assertJsonPath('data.survey.meeting.venue', 'CIAS Office');
+        $this->putJson($url, ['section' => 'auditee', 'lockVersion' => 2, 'data' => ['mandate' => 'Office mandate', 'annualBudget' => 5000, 'programs' => [['title' => 'Service improvement', 'budget' => 1200, 'status' => 'Ongoing']]]])->assertOk()->assertJsonPath('data.survey.meeting.venue', 'CIAS Office')->assertJsonPath('data.survey.auditee.programs.0.title', 'Service improvement');
+        $this->putJson($url, ['section' => 'ppsp', 'lockVersion' => 3, 'data' => ['purpose' => 'Deliver services', 'steps' => [['activity' => 'Review applications']], 'sources' => [['documentPersonMethod' => 'Interview']], 'questions' => [['informationGap' => 'Missing log']], 'risks' => [['riskDescription' => 'Late processing', 'likelihood' => 3, 'impact' => 4, 'riskRating' => 100]]]])->assertOk()->assertJsonPath('data.survey.ppsp.risks.0.riskRating', 12);
+        $this->putJson($url, ['section' => 'ics', 'lockVersion' => 4, 'data' => ['assessments' => [['principleId' => 16, 'preliminaryView' => 'More Information Needed', 'basisSource' => 'Interview', 'nextAction' => 'Add to DRL']]]])->assertOk()->assertJsonPath('data.survey.ics.assessments.0.principleId', 16);
+        $package = $this->getJson("/api/aems/engagements/{$engagement->id}/planning-package")->assertOk()->json('data.package');
+        $this->assertSame('Understand the process.', $package['latestVersion']['preliminarySurvey']['purpose']);
+        $this->assertSame('OBJ-1', $package['latestVersion']['objectives'][0]['code']);
+        $risk = $package['latestVersion']['riskMatrices'][0]['items'][0];
+        $this->assertSame('OBJ-1', $risk['objectives'][0]['code']);
+        $this->assertSame($procedure->id, $risk['procedures'][0]['id']);
+        $this->assertSame('WP-01', $risk['workingPapers'][0]['reference']);
+        $this->assertCount(5, $package['versions']);
+        $this->assertArrayNotHasKey('workspace', $package['versions'][0]['preliminarySurvey']);
+    }
+
+    public function test_reference_survey_rejects_stale_saves_invalid_data_and_locked_stages(): void
+    {
+        [$prepared, , , $engagement] = $this->fixture();
+        Sanctum::actingAs($prepared);
+        $url = "/api/aems/engagements/{$engagement->id}/preliminary-survey";
+        $payload = ['section' => 'meeting', 'lockVersion' => null, 'data' => ['venue' => 'Conference room']];
+        $this->putJson($url, $payload)->assertOk()->assertJsonPath('data.lockVersion', 1);
+        $this->putJson($url, $payload)->assertUnprocessable()->assertJsonValidationErrors('lockVersion');
+        $this->putJson($url, ['section' => 'ppsp', 'lockVersion' => 1, 'data' => ['risks' => [['likelihood' => 9]]]])->assertUnprocessable()->assertJsonValidationErrors('data.risks.0.likelihood');
+        $this->putJson($url, ['section' => 'ics', 'lockVersion' => 1, 'data' => ['assessments' => [['principleId' => 17]]]])->assertUnprocessable()->assertJsonValidationErrors('data.assessments.0.principleId');
+        $engagement->planningPackage()->update(['status' => 'APPROVED']);
+        $this->putJson($url, [...$payload, 'lockVersion' => 1])->assertUnprocessable()->assertJsonValidationErrors('status');
+        $engagement->planningPackage()->update(['status' => 'DRAFT']);
+        $engagement->update(['status' => 'FIELDWORK']);
+        $this->putJson($url, [...$payload, 'lockVersion' => 1])->assertUnprocessable();
+    }
+
+    public function test_reference_survey_attachments_are_private_and_scoped_to_the_engagement(): void
+    {
+        Storage::fake('local');
+        [$prepared, , , $engagement] = $this->fixture();
+        Sanctum::actingAs($prepared);
+        $url = "/api/aems/engagements/{$engagement->id}/preliminary-survey";
+        $upload = $this->post($url.'/attachments', ['file' => UploadedFile::fake()->create('meeting.pdf', 20, 'application/pdf')])->assertCreated()->json('data');
+        $this->putJson($url, ['section' => 'meeting', 'lockVersion' => null, 'data' => ['noticeDocumentVersionId' => $upload['id']]])->assertOk()->assertJsonPath('data.attachments.0.fileName', 'meeting.pdf');
+        $this->get($url.'/attachments/'.$upload['id'])->assertOk()->assertDownload('meeting.pdf');
+        [, , , $other] = $this->fixture();
+        $this->get("/api/aems/engagements/{$other->id}/preliminary-survey/attachments/{$upload['id']}")->assertNotFound();
+        $this->putJson("/api/aems/engagements/{$other->id}/preliminary-survey", ['section' => 'meeting', 'lockVersion' => null, 'data' => ['noticeDocumentVersionId' => $upload['id']]])->assertNotFound();
+        $this->post($url.'/attachments', ['file' => UploadedFile::fake()->create('script.exe', 20)], ['Accept' => 'application/json'])->assertUnprocessable();
+    }
+
+    public function test_structured_survey_satisfies_survey_readiness_without_legacy_narratives(): void
+    {
+        [$prepared, , , $engagement] = $this->fixture();
+        Sanctum::actingAs($prepared);
+        $sections = [
+            'meeting' => ['actualDate' => '2026-11-09', 'mattersDiscussed' => 'Discussed requirements.'],
+            'auditee' => ['mandate' => 'Office mandate', 'objectives' => 'Office objectives'],
+            'ppsp' => ['purpose' => 'Service delivery', 'scope' => 'Entire office', 'steps' => [['activity' => 'Review']], 'sources' => [['documentPersonMethod' => 'Interview']], 'risks' => [['riskDescription' => 'Delay']]],
+            'ics' => ['assessments' => array_map(fn ($id) => ['principleId' => $id, 'preliminaryView' => 'No Apparent Concern', 'basisSource' => 'Interview and records'], range(1, 16))],
+        ];
+        $lock = null;
+        foreach ($sections as $section => $data) {
+            $lock = $this->putJson("/api/aems/engagements/{$engagement->id}/preliminary-survey", ['section' => $section, 'lockVersion' => $lock, 'data' => $data])->assertOk()->json('data.lockVersion');
+            $checks = $this->getJson("/api/aems/engagements/{$engagement->id}/planning-package")->assertOk()->json('data.readiness.checks');
+            $this->assertSame($section === 'ics', collect($checks)->firstWhere('key', 'survey')['met']);
+        }
+    }
+
+    public function test_reference_survey_template_is_an_authenticated_word_document(): void
+    {
+        [$prepared, , , $engagement] = $this->fixture();
+        Sanctum::actingAs($prepared);
+        $this->get("/api/aems/engagements/{$engagement->id}/preliminary-survey/attachments/template")->assertOk()->assertDownload('Notice_of_Preliminary_Meeting_Template.docx');
+    }
+
     /** @return array{User,User,User,AuditEngagement,AuditProgramProcedure} */
     private function fixture(): array
     {
         $management = User::query()->whereHas('roles', fn ($q) => $q->where('code', 'cias_management'))->firstOrFail();
         $office = Office::query()->firstOrFail();
         $users = collect([$management]);
-        while ($users->count() < 3) $users->push(User::factory()->create(['role_id' => $management->role_id, 'office_id' => $office->id]));
+        while ($users->count() < 3) {
+            $users->push(User::factory()->create(['role_id' => $management->role_id, 'office_id' => $office->id]));
+        }
         [$prepared, $reviewer, $approver] = $users->all();
         $engagement = AuditEngagement::query()->create(['engagement_code' => 'AEMS-PP-'.fake()->unique()->numerify('####'), 'title' => 'Planning package test', 'source_type' => 'PLANNED', 'iap_plan_engagement_id' => null, 'source_snapshot' => ['test' => true], 'objectives' => 'Test objective', 'scope' => 'Test scope', 'status' => 'ENGAGEMENT_PLANNING', 'created_by' => $prepared->id, 'updated_by' => $prepared->id, 'is_active' => true]);
         $plan = AuditEngagementPlan::query()->create(['audit_engagement_id' => $engagement->id, 'plan_code' => 'AEP-'.$engagement->engagement_code, 'status' => 'APPROVED', 'current_version_number' => 1, 'prepared_by' => $prepared->id, 'approved_by' => $reviewer->id, 'approved_at' => now(), 'is_active' => true]);
         $program = AuditProgram::query()->create(['audit_engagement_id' => $engagement->id, 'audit_engagement_plan_id' => $plan->id, 'program_code' => 'AP-'.$engagement->engagement_code, 'title' => 'Program', 'objective' => 'Program objective', 'status' => 'APPROVED', 'prepared_by' => $prepared->id, 'approved_by' => $reviewer->id, 'approved_at' => now(), 'is_current_revision' => true, 'is_active' => true]);
         $procedure = AuditProgramProcedure::query()->create(['audit_program_id' => $program->id, 'procedure_code' => 'P-01', 'objective' => 'Test objective', 'procedure_description' => 'Inspect records.', 'status' => 'NOT_STARTED']);
+
         return [$prepared, $reviewer, $approver, $engagement, $procedure];
     }
 

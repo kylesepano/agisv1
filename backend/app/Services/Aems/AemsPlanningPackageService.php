@@ -91,6 +91,34 @@ class AemsPlanningPackageService
         ];
     }
 
+    /** Save one reference survey section without replacing other planning content. */
+    public function saveSurveySection(Request $request, AuditEngagement $engagement, array $input): AemsPlanningPackage
+    {
+        return DB::transaction(function () use ($request, $engagement, $input) {
+            $lockedEngagement = AuditEngagement::query()->lockForUpdate()->findOrFail($engagement->id);
+            $package = $lockedEngagement->planningPackage()->first();
+            $expected = $input['lockVersion'] ?? null;
+            if (($package && (int) $expected !== $package->lock_version) || (! $package && $expected !== null)) {
+                throw ValidationException::withMessages(['lockVersion' => ['Planning was changed in another session. Reload before saving.']]);
+            }
+            $payload = $package ? $this->versionSnapshot($package->latestVersion()->firstOrFail()) : [];
+            unset($payload['riskMatrix']);
+            $payload['riskMatrices'] = collect($payload['riskMatrices'] ?? [])->map(function ($matrix) {
+                $matrix['riskItems'] = collect($matrix['items'] ?? [])->map(function ($risk) {
+                    $risk['objectiveCodes'] = collect($risk['objectives'] ?? [])->pluck('code')->all();
+                    $risk['procedureIds'] = collect($risk['procedures'] ?? [])->pluck('id')->all();
+                    return $risk;
+                })->all();
+                return $matrix;
+            })->all();
+            $payload['preliminarySurvey']['workspace'][$input['section']] = $input['data'];
+            $payload['changeReason'] = 'Updated preliminary survey: '.$input['section'];
+            if (! $package) return $this->create($request, $lockedEngagement, $payload);
+            $payload['lockVersion'] = $expected;
+            return $this->update($request, $lockedEngagement, $package, $payload);
+        });
+    }
+
     /** @param array<string,mixed> $attributes */
     public function create(Request $request, AuditEngagement $engagement, array $attributes): AemsPlanningPackage
     {
@@ -259,7 +287,7 @@ class AemsPlanningPackageService
         $program = $procedures->first()?->program;
         $legacyChecks = [
             ['key' => 'iapLineage', 'label' => 'IAP source lineage is preserved', 'met' => $this->lineageValid($engagement, $package)],
-            ['key' => 'survey', 'label' => 'Preliminary survey is complete', 'met' => collect(['purpose','background','informationSources','observations','planningImplications'])->every(fn ($key) => filled(data_get($survey, $key)))],
+            ['key' => 'survey', 'label' => 'Preliminary survey is complete', 'met' => $this->surveyComplete($survey)],
             ['key' => 'objectives', 'label' => 'At least one planning objective exists', 'met' => $objectives->isNotEmpty()],
             ['key' => 'processFlows', 'label' => 'Process flow documentation is complete', 'met' => $flows->isNotEmpty() && $flows->every(fn ($flow) => filled($flow->title) && (filled($flow->description) || filled($flow->document_version_id) || filled($flow->source_reference)))],
             ['key' => 'riskMatrix', 'label' => 'Risk matrix and risk items exist', 'met' => $matrices->isNotEmpty() && $items->isNotEmpty()],
@@ -333,6 +361,16 @@ class AemsPlanningPackageService
         }
         foreach (($attributes['plannedWorkingPapers'] ?? []) as $index => $paper) AemsPlannedWorkingPaperRequirement::query()->create(['planning_package_version_id' => $version->id, 'audit_program_procedure_id' => $paper['procedureId'] ?? null, 'risk_matrix_item_id' => $paper['riskItemId'] ?? null, 'working_paper_reference' => $paper['reference'] ?? $paper['workingPaperReference'] ?? 'WP-'.($index + 1), 'title' => $paper['title'] ?? 'Planned Working Paper', 'objective' => $paper['objective'] ?? null, 'required_evidence' => $paper['requiredEvidence'] ?? null, 'is_required' => $paper['isRequired'] ?? true, 'sequence' => $paper['sequence'] ?? $index]);
         return $version->fresh(['objectives','processFlows','riskMatrices.items','kpis','plannedWorkingPaperRequirements']);
+    }
+
+    private function surveyComplete(array $survey): bool
+    {
+        if (collect(['purpose', 'background', 'informationSources', 'observations', 'planningImplications'])->every(fn ($key) => filled(data_get($survey, $key)))) return true;
+        $workspace = $survey['workspace'] ?? [];
+        $required = ['meeting.actualDate', 'meeting.mattersDiscussed', 'auditee.mandate', 'auditee.objectives', 'ppsp.purpose', 'ppsp.scope', 'ppsp.steps', 'ppsp.sources', 'ppsp.risks'];
+        if (! collect($required)->every(fn ($key) => filled(data_get($workspace, $key)))) return false;
+        $assessments = collect(data_get($workspace, 'ics.assessments', []))->keyBy('principleId');
+        return collect(range(1, 16))->every(fn ($id) => filled(data_get($assessments->get($id), 'preliminaryView')) && filled(data_get($assessments->get($id), 'basisSource')));
     }
 
     private function validateReferences(AuditEngagement $engagement, array $attributes): void

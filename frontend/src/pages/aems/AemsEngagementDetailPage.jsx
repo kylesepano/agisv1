@@ -6,19 +6,17 @@ import {
   CalendarDays,
   CheckSquare,
   ChevronDown,
-  FileSearch,
   FileText,
   Folder,
-  Home,
   Info,
   LockKeyhole,
   Settings,
   Target,
-  TriangleAlert,
 } from "lucide-react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import useRecordView from "../../hooks/useRecordView";
 import { aemsEngagementApi } from "../../services/api";
+import { planningActivities, surveySections } from "../../components/aems/surveyDefinition";
 
 const phaseOrder = {
   FOUNDATION: 1,
@@ -42,18 +40,6 @@ const tabRequirements = {
   activity: { minimumPhase: 0 },
 };
 
-const planningActivities = [
-  { label: "Preliminary Survey & Risk Assessment", section: "survey", description: "Understand the activity, objectives, processes, risks, controls, systems, and operating environment.", path: "planning-package" },
-  { label: "Document Request List", description: "Coordinate the initial document and information requirements for this engagement.", path: "planning-package", section: "overview" },
-  { label: "Process Flow", section: "process-flows", description: "Document the end-to-end process flow and identify key control points.", path: "planning-package" },
-  { label: "Risk Matrix", section: "risk-matrix", description: "Assess inherent and residual risks, controls, and the planned audit response.", path: "planning-package" },
-  { label: "Criteria Matrix", description: "Define the criteria and standards that will be used to assess the engagement.", path: "aep" },
-  { label: "Audit Engagement Plan (AEP)", description: "Set the engagement objectives, scope, methodology, and planning baseline.", path: "aep" },
-  { label: "Key Performance Indicators (KPIs)", section: "kpis", description: "Define measurable KPI targets, methods, and responsible offices.", path: "planning-package" },
-  { label: "Audit Program", description: "Prepare the approved audit procedures and planned tests.", path: "audit-program" },
-  { label: "Audit Sampling", description: "Document the sampling approach and sample design in the audit program.", path: "audit-program" },
-  { label: "Entrance Conference Preparation", description: "Prepare the agenda and required materials before the entry conference.", path: "entry-conferences" },
-];
 
 function formatDate(value, withTime = false) {
   if (!value) return "—";
@@ -104,10 +90,10 @@ export default function AemsEngagementDetailPage() {
   const [engagement, setEngagement] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [planningActivity, setPlanningActivity] = useState(0);
+  const planningActivity = searchParams.has("activity") && Number(searchParams.get("activity")) >= 0 && Number(searchParams.get("activity")) < planningActivities.length ? Number(searchParams.get("activity")) : null;
   const [summarySection, setSummarySection] = useState(null);
   const requestedTab = searchParams.get("tab");
-  const tab = ["details", "planning", "execution", "reporting", "completion"].includes(requestedTab)
+  const tab = ["details", "planning", "execution", "reporting", "completion", "activity"].includes(requestedTab)
     ? requestedTab
     : "overview";
 
@@ -185,7 +171,8 @@ export default function AemsEngagementDetailPage() {
           <p className="mt-1 text-sm">{engagement.offices?.[0]?.name ?? "Office not assigned"}{engagement.offices?.[0]?.code ? ` (${engagement.offices[0].code})` : ""}</p>
         </div>
         <dl className="border-b border-[#78afca] pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-8">
-          <Row label="Audit Type:">{engagement.auditType?.label ?? "—"}</Row>
+          <Row label="Engagement Source:">{source ? "Internal Audit Planning (IAP)" : "Authorized Unplanned Engagement"}</Row>
+          <Row label={source ? "Plan Reference No:" : "Authority Reference No:"}>{source ? plan.code : engagement.specialAuthorityReference}</Row>
           <Row label="Audit Year:">{engagement.auditYear ?? plan.fiscalYear ?? new Date(engagement.plannedStartDate ?? engagement.createdAt).getFullYear()}</Row>
           <Row label="Period Covered:">{formatDate(engagement.periodCoveredStartDate ?? plan.periodStart)} - {formatDate(engagement.periodCoveredEndDate ?? plan.periodEnd)}</Row>
         </dl>
@@ -210,7 +197,7 @@ export default function AemsEngagementDetailPage() {
             ["Execution", ["FIELDWORK", "FINDINGS_COMMUNICATION", "EXIT_CONFERENCE", "REPORTING", "ISSUED", "CLOSURE_REVIEW", "COMPLETED", "CLOSED"]],
             ["Reporting", ["REPORTING", "ISSUED", "CLOSURE_REVIEW", "COMPLETED", "CLOSED"]],
             ["Completion & Transfer", ["CLOSURE_REVIEW", "COMPLETED", "CLOSED"]],
-          ].map(([label, completed], index) => {
+          ].map(([label], index) => {
             const stageOrder = [0, 1, 2, 5, 6][index];
             const done = stageOrder < currentPhaseOrder;
             const active = stageOrder === currentPhaseOrder;
@@ -220,14 +207,13 @@ export default function AemsEngagementDetailPage() {
       </section>
       </div>
 
-      <nav className="overflow-x-auto rounded-t-lg border-2 border-[#2294d2] bg-[#dcebfa]" aria-label="Engagement workspaces">
+      <nav className="flex items-center justify-between gap-4 overflow-x-auto rounded-t-lg border-2 border-[#2294d2] bg-[#dcebfa]" aria-label="Engagement workspaces">
         <div className="flex min-w-max">
           {tabs.map(([key, label, Icon]) => {
             const requirement = tabRequirements[key];
             const locked = currentPhaseOrder < requirement.minimumPhase;
             return (
               <button
-                aria-disabled={locked}
                 className={`flex h-14 items-center gap-2 border-b-4 px-5 text-base font-semibold ${
                   locked
                     ? "border-transparent text-slate-400 hover:bg-white/60"
@@ -247,26 +233,29 @@ export default function AemsEngagementDetailPage() {
             );
           })}
         </div>
+        <button className="mr-3 shrink-0 rounded-md border-2 border-[#2294d2] bg-[#e2f0fd] px-8 py-2 text-sm font-medium" onClick={() => setSearchParams({ tab: "activity" })} type="button">Activity Log</button>
       </nav>
 
       <section className="mb-7 rounded-b-lg border-x-2 border-b-2 border-[#2294d2] bg-[#dcebfa] p-4 sm:p-7">
-      {tab === "overview" ? (
+      {tab === "activity" ? (
+        <Section icon={Activity} title="Activity Log">{(engagement.events ?? []).length ? <ol className="divide-y divide-sky-100">{engagement.events.slice().reverse().map((event) => <li className="py-3 text-sm" key={event.id}><strong>{event.action.replaceAll("_", " ")}</strong><p className="mt-1 text-slate-600">{event.comment || "Engagement record updated."}</p><small>{formatDate(event.createdAt, true)} · {event.actor?.name ?? "System"}</small></li>)}</ol> : <p className="text-sm text-slate-500">No engagement activity has been recorded.</p>}</Section>
+      ) : tab === "overview" ? (
         <div className="grid gap-6 rounded-md border border-[#9ac3d9] bg-[#f8fcff] p-10 md:grid-cols-2 xl:grid-cols-4">
           {tabs.map(([key, label, Icon]) => <article className="flex min-h-80 flex-col items-center justify-center rounded-xl border-2 border-[#2294d2] bg-[#d7e2f4] p-6 text-center" key={key}><Icon size={88} strokeWidth={1.6} /><h3 className="mt-7 text-2xl font-semibold">{label}</h3><button className="mt-10 inline-flex items-center gap-4 rounded-md border border-slate-400 bg-white px-8 py-3 text-slate-700" onClick={() => setSearchParams({ tab: key })} type="button">Open Activity <ArrowRight size={18} /></button></article>)}
         </div>
       ) : tab === "planning" ? (
         <Section icon={FileText} title="Planning Activities">
-          <div className="grid overflow-hidden rounded-md border border-[#9ac3d9] bg-white lg:grid-cols-[25rem_minmax(0,1fr)]">
+          <div className="grid min-h-[510px] overflow-hidden rounded-md border border-[#9ac3d9] bg-[#f4f9ff] lg:grid-cols-[36%_minmax(0,1fr)]">
             <ol className="divide-y divide-sky-100 border-b border-[#9ac3d9] lg:border-b-0 lg:border-r">
               {planningActivities.map((activity, index) => (
                 <li key={activity.label}>
-                  <button className={`flex w-full items-center gap-4 px-5 py-3 text-left text-sm font-medium ${planningActivity === index ? "border-r-4 border-[#087bea] bg-sky-100 text-[#123a98]" : "text-[#123a98] hover:bg-sky-50"}`} onClick={() => setPlanningActivity(index)} type="button">
+                  <button className={`flex w-full items-center gap-4 px-5 py-4 text-left text-sm font-medium ${planningActivity === index ? "border-r-8 border-[#087bea] bg-[#9fd8f5] text-[#123a98]" : "text-[#123a98] hover:bg-sky-50"}`} onClick={() => setSearchParams({ tab: "planning", activity: index })} type="button">
                     <span className="w-5 text-right font-semibold">{index + 1}</span>{activity.label}
                   </button>
                 </li>
               ))}
             </ol>
-            <div className="p-6 lg:p-8">
+            {planningActivity === null ? <div className="flex flex-col items-center justify-center gap-6 p-10 text-center text-[#5554a7]"><FileText size={64} /><h3 className="text-xl font-semibold">Audit Engagement Planning</h3><p>Select a planning activity from the list on the left to view its purpose, progress, and available actions.</p><p className="text-sm">Begin with Preliminary Survey or select another activity to continue your engagement planning work.</p></div> : <div className="p-6 lg:p-8">
               <div className="flex items-start gap-4">
                 <FileText className="mt-0.5 shrink-0 text-[#087bea]" size={34} />
                 <div>
@@ -274,14 +263,14 @@ export default function AemsEngagementDetailPage() {
                   <p className="mt-1 max-w-2xl text-sm leading-6 text-[#3151a2]">{planningActivities[planningActivity].description}</p>
                 </div>
               </div>
-              <div className="mt-7 max-w-md rounded-md border border-[#2294d2] bg-[#d7e2f4] px-6 py-5 text-sm text-[#3151a2]">
+              {planningActivity === 0 ? <div className="mt-10 space-y-4 border border-[#9ac3d9] px-5 py-8 lg:px-10 lg:py-12">{surveySections.map(([key, number, title]) => <Link className="flex gap-3 rounded-lg border-2 border-[#2294d2] bg-[#e2f0fd] px-5 py-3 text-base font-semibold text-[#123a98] hover:bg-sky-100" key={key} to={`/audit-engagement-management/preliminary-survey?engagementId=${engagement.id}&section=${key}`}><span>{number}</span><span>{title}</span></Link>)}</div> : <div className="mt-7 max-w-md rounded-md border border-[#2294d2] bg-[#d7e2f4] px-6 py-5 text-sm text-[#3151a2]">
                 <Row label="Activity Status">{planningActivity === 0 ? "In Progress" : "Not Started"}</Row>
                 <Row label="Responsible Auditor">{engagement.initialTeamPlan?.teamLeaderName ?? engagement.creator?.name ?? "To be assigned"}</Row>
                 <Row label="Target Completion">{formatDate(engagement.plannedEndDate)}</Row>
                 <Row label="Last Updated">{formatDate(engagement.updatedAt)}</Row>
                 <button className="mt-5 inline-flex h-10 items-center gap-3 rounded border border-slate-400 bg-white px-6 font-medium text-slate-700 hover:bg-slate-50" onClick={() => navigate(`/audit-engagement-management/${planningActivities[planningActivity].path}?engagementId=${engagement.id}${planningActivities[planningActivity].section ? `&section=${planningActivities[planningActivity].section}` : ""}`)} type="button">Open Activity <ArrowRight size={18} /></button>
-              </div>
-            </div>
+              </div>}
+            </div>}
           </div>
         </Section>
       ) : tab === "details" ? (

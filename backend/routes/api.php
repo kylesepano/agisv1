@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\Aems\AemsFindingController;
 use App\Http\Controllers\Api\Aems\AemsIssueController;
 use App\Http\Controllers\Api\Aems\AemsProgramController;
 use App\Http\Controllers\Api\Aems\AemsPlanningPackageController;
+use App\Http\Controllers\Api\Aems\AemsPreliminarySurveyController;
 use App\Http\Controllers\Api\Aems\AemsReopenController;
 use App\Http\Controllers\Api\Aems\AemsReportController;
 use App\Http\Controllers\Api\Aems\AemsTeamController;
@@ -624,6 +625,11 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:aems.aep.view');
     Route::post('/aems/engagements/{engagement}/aep/{plan}/revise', [AemsAepController::class, 'revise'])
         ->middleware('permission:aems.aep.revise');
+    Route::get('/aems/engagements/{engagement}/preliminary-survey', [AemsPreliminarySurveyController::class, 'show'])->middleware('permission:aems.planning-package.view');
+    Route::put('/aems/engagements/{engagement}/preliminary-survey', [AemsPreliminarySurveyController::class, 'save'])->middleware('permission:aems.planning-package.create|aems.planning-package.update');
+    Route::post('/aems/engagements/{engagement}/preliminary-survey/attachments', [AemsPreliminarySurveyController::class, 'upload'])->middleware('permission:aems.planning-package.create|aems.planning-package.update');
+    Route::get('/aems/engagements/{engagement}/preliminary-survey/attachments/template', [AemsPreliminarySurveyController::class, 'template'])->middleware('permission:aems.planning-package.view');
+    Route::get('/aems/engagements/{engagement}/preliminary-survey/attachments/{version}', [AemsPreliminarySurveyController::class, 'download'])->whereNumber('version')->middleware('permission:aems.planning-package.view');
     Route::get('/aems/engagements/{engagement}/planning-package', [AemsPlanningPackageController::class, 'show'])
         ->middleware('permission:aems.planning-package.view');
     Route::post('/aems/engagements/{engagement}/planning-package', [AemsPlanningPackageController::class, 'store'])

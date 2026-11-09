@@ -87,6 +87,7 @@ const AemsAepPage = lazy(() => import("./pages/aems/AemsAepPage"));
 const AemsPlanningPackagePage = lazy(
   () => import("./pages/aems/AemsPlanningPackagePage"),
 );
+const AemsPreliminarySurveyPage = lazy(() => import("./pages/aems/AemsPreliminarySurveyPage"));
 const AemsAuditProgramPage = lazy(
   () => import("./pages/aems/AemsAuditProgramPage"),
 );
@@ -211,6 +212,7 @@ const implementedCorePaths = new Set([
   "/audit-engagement-management/aeo",
   "/audit-engagement-management/aep",
   "/audit-engagement-management/planning-package",
+  "/audit-engagement-management/preliminary-survey",
   "/audit-engagement-management/audit-program",
   "/audit-engagement-management/audit-procedure-details",
   "/audit-engagement-management/execution",
@@ -597,6 +599,10 @@ export default function App() {
                 </Suspense>
               </ProtectedPage>
             }
+          />
+          <Route
+            path="audit-engagement-management/preliminary-survey"
+            element={<ProtectedPage permission="aems.planning-package.view"><Suspense fallback={<RouteLoading />}><AemsPreliminarySurveyPage /></Suspense></ProtectedPage>}
           />
           <Route
             path="audit-engagement-management/planning-package"
