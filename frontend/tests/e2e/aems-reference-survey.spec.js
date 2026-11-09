@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
     else if (path === "/api/aems/engagements/9001") data = { engagement };
     else if (path.endsWith("/preliminary-survey")) {
       if (route.request().method() === "PUT") { const input = route.request().postDataJSON(); survey = { ...survey, [input.section]: input.data }; lockVersion = (lockVersion ?? 0) + 1; }
-      data = { survey, lockVersion, packageStatus: "DRAFT", canEdit: true, attachments: [] };
+      data = { survey, lockVersion, packageStatus: "DRAFT", canEdit: true, attachments: [], participantOptions: [{ id: 1, name: "Juan dela Cruz", position: "Auditor", employeeId: "CIAS-001" }, { id: 2, name: "Maria Santos", position: "Team Leader", employeeId: "CIAS-002" }] };
     }
     await route.fulfill({ json: { success: true, data } });
   });
@@ -28,10 +28,27 @@ test("reference planning menu reaches the four survey sections and saves meeting
   await page.screenshot({ path: `test-results/reference-planning-${info.project.name}.png`, fullPage: true });
   await page.getByRole("link", { name: "1.1 Preliminary Meeting", exact: true }).click();
   await page.getByLabel("Venue / Online Link").fill("CIAS Conference Room");
+  const participants = page.getByRole("group", { name: "CIAS Participants", exact: true });
+  await participants.getByRole("button", { name: "Search and select CIAS participants", exact: true }).click();
+  await page.getByPlaceholder("Search CIAS participants...").fill("Juan");
+  await participants.getByRole("button", { name: /Juan dela Cruz Auditor/ }).click();
+  await page.getByPlaceholder("Search CIAS participants...").fill("Maria");
+  await participants.getByRole("button", { name: /Maria Santos Team Leader/ }).click();
+  await page.getByRole("heading", { level: 1 }).last().click();
+  if (info.project.name === "survey-desktop") {
+    const date = await page.getByLabel("Proposed Date & Time").boundingBox();
+    const venue = await page.getByLabel("Venue / Online Link").boundingBox();
+    expect(Math.abs(date.y - venue.y)).toBeLessThan(2);
+    const matters = await page.getByLabel("Key Matters to Discuss", { exact: true }).boundingBox();
+    const notice = await page.locator(".survey-meeting-notice").boundingBox();
+    expect(notice.y).toBeGreaterThan(matters.y + matters.height + 10);
+  }
   await page.getByRole("button", { name: "Save Draft", exact: true }).click();
   await expect(page.getByRole("status")).toHaveText("Draft saved successfully.");
   await page.reload();
   await expect(page.getByLabel("Venue / Online Link")).toHaveValue("CIAS Conference Room");
+  await expect(participants.getByText("Juan dela Cruz", { exact: true })).toBeVisible();
+  await expect(participants.getByText("Maria Santos", { exact: true })).toBeVisible();
   await page.screenshot({ path: `test-results/reference-meeting-${info.project.name}.png`, fullPage: true });
 });
 

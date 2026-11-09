@@ -329,6 +329,29 @@ class AemsPlanningPackageTest extends TestCase
         }
     }
 
+    public function test_preliminary_meeting_supports_multiple_active_cias_participants(): void
+    {
+        [$prepared, , , $engagement] = $this->fixture();
+        Sanctum::actingAs($prepared);
+        $office = Office::query()->where('code', 'CIAS')->firstOrFail();
+        $first = User::factory()->create(['office_id' => $office->id, 'is_active' => true]);
+        $second = User::factory()->create(['office_id' => $office->id, 'is_active' => true]);
+        $inactive = User::factory()->create(['office_id' => $office->id, 'is_active' => false]);
+        $other = User::factory()->create(['office_id' => Office::where('code', '!=', 'CIAS')->value('id'), 'is_active' => true]);
+        $url = "/api/aems/engagements/{$engagement->id}/preliminary-survey";
+        $options = $this->getJson($url)->assertOk()->json('data.participantOptions');
+        $this->assertContains($first->id, array_column($options, 'id'));
+        $this->assertNotContains($inactive->id, array_column($options, 'id'));
+        $this->assertNotContains($other->id, array_column($options, 'id'));
+        $this->putJson($url, ['section' => 'meeting', 'lockVersion' => null, 'data' => ['ciasParticipantIds' => [$first->id, $second->id]]])->assertOk()
+            ->assertJsonPath('data.survey.meeting.ciasParticipantIds', [$first->id, $second->id])
+            ->assertJsonPath('data.survey.meeting.ciasParticipants', $first->name.', '.$second->name);
+        foreach ([$inactive, $other] as $invalid) {
+            $this->putJson($url, ['section' => 'meeting', 'lockVersion' => 1, 'data' => ['ciasParticipantIds' => [$invalid->id]]])->assertUnprocessable()->assertJsonValidationErrors('data.ciasParticipantIds.0');
+        }
+        $this->putJson($url, ['section' => 'meeting', 'lockVersion' => 1, 'data' => ['ciasParticipantIds' => []]])->assertOk()->assertJsonPath('data.survey.meeting.ciasParticipants', '');
+    }
+
     public function test_reference_survey_template_is_an_authenticated_word_document(): void
     {
         [$prepared, , , $engagement] = $this->fixture();

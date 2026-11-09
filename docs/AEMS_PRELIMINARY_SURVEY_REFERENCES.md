@@ -38,6 +38,8 @@ Each section save creates an immutable planning-package version through `AemsPla
 
 The existing package's survey-readiness check also accepts completed structured surveys: actual meeting/discussion, auditee mandate/objectives, PPSP purpose/scope and operating steps/sources/risks, plus a preliminary view and basis for each of the 16 ICS principles. Legacy narrative completion remains supported. All other formal planning readiness checks still apply.
 
+The Preliminary Meeting form places proposed date/time and venue in a shared row, followed by independent left/right field columns. The notice upload is a separate block below the discussion textarea. CIAS Participants uses a searchable multi-select populated from active users in the CIAS office; `meeting.ciasParticipantIds` is validated and saved, with `ciasParticipants` generated from their names for readable history. Previously saved free text remains visible until participants are selected.
+
 Attachments use Core `documents`, immutable `document_versions`, and engagement-scoped `document_links` with record type `AEMS_PRELIMINARY_SURVEY`. Files remain on Laravel's private `local` disk, outside the public asset library. Uploads accept PDF/DOC/DOCX up to 10 MB; downloads and saved file references are checked against the current engagement. Retain or mount persistent backend storage when deploying.
 
 New endpoints under `/api/aems/engagements/{engagement}`:

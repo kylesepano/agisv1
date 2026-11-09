@@ -8,6 +8,7 @@ use App\Models\AuditEngagement;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\MasterList;
+use App\Models\User;
 use App\Services\AemsAccessService;
 use App\Services\AemsPlanningPackageService;
 use App\Services\AemsSupport;
@@ -32,6 +33,10 @@ class AemsPreliminarySurveyController extends Controller
     {
         $this->access->authorizeEngagementAction($request->user(), $engagement, $engagement->planningPackage()->exists() ? 'aems.planning-package.update' : 'aems.planning-package.create');
         $input = $request->validated();
+        if ($input['section'] === 'meeting' && array_key_exists('ciasParticipantIds', $input['data'])) {
+            $people = User::query()->whereIn('id', $input['data']['ciasParticipantIds'] ?? [])->pluck('name', 'id');
+            $input['data']['ciasParticipants'] = collect($input['data']['ciasParticipantIds'] ?? [])->map(fn ($id) => $people->get($id))->filter()->implode(', ');
+        }
         foreach (['noticeDocumentVersionId', 'budgetDocumentVersionId', 'flowchartDocumentVersionId'] as $key) {
             if (! empty($input['data'][$key])) {
                 $this->document($engagement, (int) $input['data'][$key]);
@@ -136,6 +141,6 @@ class AemsPreliminarySurveyController extends Controller
         $survey = data_get($package?->latestVersion?->preliminary_survey, 'workspace', []);
         $ids = collect([data_get($survey, 'meeting.noticeDocumentVersionId'), data_get($survey, 'auditee.budgetDocumentVersionId'), data_get($survey, 'ppsp.flowchartDocumentVersionId')])->filter();
 
-        return ['survey' => $survey, 'lockVersion' => $package?->lock_version, 'packageStatus' => $package?->status ?? 'DRAFT', 'canEdit' => $engagement->status === 'ENGAGEMENT_PLANNING' && (! $package || in_array($package->status, ['DRAFT', 'RETURNED_FOR_REVISION'], true)), 'attachments' => DocumentVersion::whereIn('id', $ids)->get()->map(fn ($v) => ['id' => $v->id, 'fileName' => $v->original_file_name])->values()];
+        return ['survey' => $survey, 'lockVersion' => $package?->lock_version, 'packageStatus' => $package?->status ?? 'DRAFT', 'canEdit' => $engagement->status === 'ENGAGEMENT_PLANNING' && (! $package || in_array($package->status, ['DRAFT', 'RETURNED_FOR_REVISION'], true)), 'attachments' => DocumentVersion::whereIn('id', $ids)->get()->map(fn ($v) => ['id' => $v->id, 'fileName' => $v->original_file_name])->values(), 'participantOptions' => User::query()->where('is_active', true)->whereHas('office', fn ($query) => $query->where('code', 'CIAS'))->orderBy('name')->get(['id', 'name', 'position', 'employee_id'])->map(fn ($person) => ['id' => $person->id, 'name' => $person->name, 'position' => $person->position, 'employeeId' => $person->employee_id])->values()];
     }
 }
