@@ -1,0 +1,106 @@
+.audit-calendar-shell .fc {
+  --fc-border-color: #e2e8f0;
+  --fc-page-bg-color: #ffffff;
+  --fc-neutral-bg-color: #f8fafc;
+  --fc-list-event-hover-bg-color: #f8fafc;
+  font-family: inherit;
+}
+
+.audit-calendar-shell .fc .fc-scrollgrid {
+  border: 0;
+}
+
+.audit-calendar-shell .fc .fc-col-header-cell {
+  background: #f8fafc;
+  padding: 0.18rem 0;
+}
+
+.audit-calendar-shell .fc .fc-col-header-cell-cushion {
+  padding: 0.32rem 0.2rem;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+}
+
+.audit-calendar-shell .fc .fc-daygrid-day-number,
+.audit-calendar-shell .fc .fc-timegrid-slot-label-cushion,
+.audit-calendar-shell .fc .fc-list-day-text,
+.audit-calendar-shell .fc .fc-list-day-side-text {
+  color: #334155;
+  font-weight: 600;
+}
+
+.audit-calendar-shell .fc .fc-daygrid-day-top {
+  justify-content: flex-end;
+  padding: 0.18rem 0.32rem 0;
+}
+
+.audit-calendar-shell .fc .fc-daygrid-day-frame {
+  min-height: 72px;
+}
+
+.audit-calendar-shell .fc .fc-day-other .fc-daygrid-day-number {
+  color: #94a3b8;
+}
+
+.audit-calendar-shell .fc .fc-day-today {
+  background: #ffffff !important;
+}
+
+.audit-calendar-shell .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  display: inline-grid;
+  place-items: center;
+  height: 1.35rem;
+  width: 1.35rem;
+  border-radius: 9999px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.72rem;
+}
+
+.audit-calendar-shell .fc .fc-daygrid-event {
+  margin: 1px 3px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.audit-calendar-shell .fc .fc-daygrid-more-link {
+  margin: 1px 5px 0;
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.audit-calendar-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--chip-color) 12%, white);
+  padding: 0.12rem 0.35rem;
+  font-size: 0.5rem;
+  font-weight: 600;
+  line-height: 1.05;
+  color: color-mix(in srgb, var(--chip-color) 88%, black);
+}
+
+.audit-calendar-chip-dot {
+  flex: 0 0 auto;
+  height: 0.28rem;
+  width: 0.28rem;
+  border-radius: 9999px;
+  background: var(--chip-color);
+}
+
+.audit-calendar-shell .fc .fc-list-event-title,
+.audit-calendar-shell .fc .fc-list-event-time {
+  color: #0f172a;
+}
+
+.audit-calendar-shell .fc .fc-list-event:hover td {
+  background: #f8fafc;
+}

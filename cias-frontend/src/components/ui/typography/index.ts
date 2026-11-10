@@ -1,0 +1,5 @@
+export { Caption } from './Caption'
+export { Heading } from './Heading'
+export { Label } from './Label'
+export { Paragraph } from './Paragraph'
+export { Text } from './Text'
