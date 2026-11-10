@@ -199,7 +199,8 @@ export const adminRoutes = [
   { path: '/admin/audit-engagement/:id/conference', element: <AdminConferencePage /> },
   { path: '/admin/audit-engagement/:id/conferences', element: <AdminConferencePage /> },
   { path: '/admin/audit-engagement/:id/entry-conference', element: <AdminConferencePage /> },
-  { path: '/admin/audit-engagement/:id/execution', element: <AdminExecutionPage /> },
+  // Handled inline as Under Development tab inside EngagementLanding:
+  // { path: '/admin/audit-engagement/:id/execution', element: <AdminExecutionPage /> },
   { path: '/admin/audit-engagement/:id/execution-workspace', element: <AdminExecutionPage /> },
   { path: '/admin/audit-engagement/:id/execution/records', element: <AdminFieldworkRecordsPage /> },
   { path: '/admin/audit-engagement/:id/execution/records/:recordId', element: <AdminFieldworkRecordsPage /> },

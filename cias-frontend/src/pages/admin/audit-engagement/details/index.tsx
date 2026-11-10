@@ -40,7 +40,13 @@ const validTabs: EngagementDetailsTab[] = [
   "completion-transfer",
   "activity",
 ];
-const newWorkspaceTabs = ["planning", "execution", "audit-reports", "completion-transfer"] as const;
+const newWorkspaceTabs = [
+  "planning",
+  "execution",
+  "audit-reports",
+  "completion-transfer",
+  "activity",
+] as const;
 
 export function AdminEngagementDetailsPage() {
   const { showToast } = useToast();
@@ -175,9 +181,74 @@ export function AdminEngagementDetailsPage() {
                 approver:
                   eng.initialTeamPlan?.departmentHead?.name ??
                   eng.engagementOrder?.approver?.name ??
-                  "Director Manuel C. Tan, CPA, CFE",
+                  "Department Head",
               }
             : fallback.aeo,
+          recentActivity: Array.isArray(eng.events)
+            ? [...eng.events]
+                .sort((a: any, b: any) => Number(b.id) - Number(a.id))
+                .map((evt: any) => {
+                  const actionUpper = String(evt.action || "ACTIVITY").toUpperCase();
+                  const assignedUser = evt.newValues?.user?.name;
+                  const assignedRole = evt.newValues?.assignmentRoleCode
+                    ? String(evt.newValues.assignmentRoleCode)
+                        .replaceAll("_", " ")
+                        .toLowerCase()
+                        .replace(/\b\w/g, (c: string) => c.toUpperCase())
+                    : null;
+
+                  const derivedDescription =
+                    evt.comment ||
+                    (actionUpper === "ASSIGNED" && assignedUser
+                      ? `Assigned ${assignedUser}${assignedRole ? ` (${assignedRole})` : ""} to the engagement team.`
+                      : actionUpper === "UPDATE"
+                      ? `Updated engagement details${evt.toStatus ? ` (${String(evt.toStatus).replaceAll("_", " ")})` : ""}.`
+                      : `Workflow event recorded${evt.toStatus ? ` (${String(evt.toStatus).replaceAll("_", " ")})` : ""}.`);
+
+                  const eventType: "initiation" | "scope" | "team" | "order" | "planning" | "review" =
+                    actionUpper.includes("ASSIGN")
+                      ? "team"
+                      : actionUpper.includes("SCOPE")
+                      ? "scope"
+                      : actionUpper.includes("AEO") || actionUpper.includes("ORDER")
+                      ? "order"
+                      : actionUpper.includes("PLANNING")
+                      ? "planning"
+                      : actionUpper.includes("REVIEW")
+                      ? "review"
+                      : "initiation";
+
+                  return {
+                    id: String(evt.id),
+                    title: (evt.action || "ACTIVITY")
+                      .replaceAll("_", " ")
+                      .toLowerCase()
+                      .replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                    description: derivedDescription,
+                    actor: evt.actor?.name || "System",
+                    role:
+                      evt.actor?.position ||
+                      evt.actor?.role ||
+                      evt.actor?.employeeId ||
+                      "Staff",
+                    timestamp: evt.createdAt
+                      ? new Date(evt.createdAt).toLocaleString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "",
+                    phase: (evt.toStatus || evt.fromStatus || "Engagement")
+                      .replaceAll("_", " ")
+                      .toLowerCase()
+                      .replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                    status: evt.toStatus || evt.fromStatus || "ACTIVE",
+                    type: eventType,
+                  };
+                })
+            : [],
         });
       })
       .catch((err) => {
@@ -527,7 +598,7 @@ export function AdminEngagementDetailsPage() {
             {activeTab === "audit-issues" && <AuditIssuesTabStub details={details} />}
             {activeTab === "afrs" && <AfrsTabStub details={details} />}
             {activeTab === "conferences" && <ConferencesTabStub details={details} />}
-            {activeTab === "activity" && <ActivityTabStub details={details} />}
+            {activeTab === "activity" && <ActivityTabStub details={details} isLoading={isLoading} />}
           </div>
         </div>
           </>

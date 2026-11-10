@@ -296,25 +296,24 @@ export function PlanningActivities({ details, engagementId }: PlanningActivities
                   </div>
                 </div>
               ) : (
-                /* Under Development Notice for Steps 2 to 8 */
-                <div className="mt-6 rounded-md border border-amber-200 bg-amber-50/40 p-6 sm:p-8 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-700 mb-3">
-                    <Construction className="h-6 w-6" />
+                /* Under Development Notice for Steps 2 to 8 matching PlanningActivities style */
+                <div className="mt-6 flex flex-col items-center justify-center rounded-md border border-[#9fc2db] bg-[#f8fcff] px-6 py-10 text-center">
+                  <div className="flex h-[76px] w-[76px] items-center justify-center rounded-2xl border-2 border-[#5464a0] bg-[#f4f7fc] text-[#5464a0] shadow-2xs">
+                    <Construction className="h-9 w-9" strokeWidth={1.8} />
                   </div>
-                  <h4 className="text-base font-bold text-slate-800">
+                  <h4 className="mt-6 text-[18px] font-bold text-[#1d2e68]">
                     Step {selectedActivity.id} is Under Active Development
                   </h4>
-                  <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-slate-600">
+                  <p className="mt-2.5 max-w-[440px] text-[13px] leading-relaxed text-slate-600">
                     The interactive workflows and audit forms for{" "}
-                    <span className="font-semibold text-slate-700">
+                    <span className="font-semibold text-[#1d2e68]">
                       &ldquo;{selectedActivity.title}&rdquo;
                     </span>{" "}
-                    are currently in development. Preliminary Survey (Step 1) is active for current engagement planning.
+                    are currently in development.
                   </p>
-                  <div className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-xs border border-amber-200/80">
-                    <Clock className="h-3.5 w-3.5 text-amber-600" />
-                    Scheduled for upcoming release
-                  </div>
+                  <p className="mt-3.5 max-w-[420px] text-[12px] leading-relaxed text-slate-500">
+                    Use Step 1 (Preliminary Survey) to continue your current engagement planning work.
+                  </p>
 
                   {/*
                     ORIGINAL SUB-ITEMS (COMMENTED OUT - DO NOT DELETE):
