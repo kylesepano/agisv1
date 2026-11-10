@@ -1161,8 +1161,8 @@ export function CreateAuditEngagementPage() {
                         {isIAP
                           ? "Pre-filled from approved IAP"
                           : selectedOfficeId
-                          ? "Click [ Add Audit Area ] to select areas linked to this office"
-                          : "Select a Target Office first or configure in Scope later"}
+                            ? "Click [ Add Audit Area ] to select areas linked to this office"
+                            : "Select a Target Office first or configure in Scope later"}
                       </span>
                     )}
                   </div>

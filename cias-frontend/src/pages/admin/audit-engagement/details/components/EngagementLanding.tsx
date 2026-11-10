@@ -10,12 +10,13 @@ import {
 import { navigateTo } from "../../../../../routes";
 import type { FullEngagementDetails } from "../engagement-details-types";
 import { PlanningActivities } from "./PlanningActivities";
+import { ActivityTabStub } from "./TabStubs";
 import { CompletionIcon, ExecutionIcon, PlanningIcon, ReportingIcon } from "./WorkspaceIcons";
 
 type EngagementLandingProps = {
   details: FullEngagementDetails;
   engagementId: string;
-  initialWorkspace?: WorkspaceId;
+  initialWorkspace?: LandingTabId;
   isLoading?: boolean;
 };
 
@@ -27,9 +28,10 @@ const workspaces = [
 ] as const;
 
 type WorkspaceId = (typeof workspaces)[number]["id"];
+type LandingTabId = WorkspaceId | "activity";
 
 export function EngagementLanding({ details, engagementId, initialWorkspace, isLoading }: EngagementLandingProps) {
-  const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceId | null>(initialWorkspace ?? null);
+  const [selectedWorkspace, setSelectedWorkspace] = useState<LandingTabId | null>(initialWorkspace ?? null);
   const basePath = `/admin/audit-engagement/${engagementId}`;
   const selectedStage = workspaces.find((workspace) => workspace.id === selectedWorkspace);
   const SelectedIcon = selectedStage?.icon ?? Circle;
@@ -190,21 +192,37 @@ export function EngagementLanding({ details, engagementId, initialWorkspace, isL
                 type="button"
                 onClick={() => {
                   setSelectedWorkspace(id);
-                  navigateTo(`${basePath}/${id}`);
+                  // Keep tab navigation inline without jumping routes
+                  // navigateTo(`${basePath}/${id}`);
                 }}
                 aria-pressed={selectedWorkspace === id}
                 className={selectedWorkspace === id
                   ? "relative flex cursor-pointer items-center gap-2 border border-b-0 border-[#4485bb] bg-[#e7f3ff] px-5 py-2 text-sm font-semibold text-[#243685] transition-colors duration-150 hover:bg-[#d7ebff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2478bf] after:absolute after:bottom-0 after:left-3 after:right-3 after:h-1 after:bg-[#00cfa5]"
                   : "flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold text-[#243685] transition-colors duration-150 hover:bg-[#d7ebff] hover:text-[#0b4d91] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2478bf]"}
               >
-                <Icon size={18} />{label}
+                <Icon size={18} />
+                <span>{label}</span>
+                {id !== "planning" && (
+                  <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                    In Dev
+                  </span>
+                )}
               </button>
             ))}
           </div>
           <button
             type="button"
-            onClick={() => navigateTo(`${basePath}/activity`)}
-            className="mb-2 cursor-pointer rounded-md border border-[#4485bb] bg-[#e7f3ff] px-8 py-2 text-xs font-medium text-[#173575] transition-all duration-150 hover:border-[#1769b2] hover:bg-[#d5eaff] hover:text-[#0b4d91] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2478bf]"
+            aria-pressed={selectedWorkspace === "activity"}
+            onClick={() => {
+              setSelectedWorkspace((prev) => (prev === "activity" ? null : "activity"));
+              // Keep inline layout consistent instead of navigating to legacy 8-tab layout:
+              // navigateTo(`${basePath}/activity`);
+            }}
+            className={
+              selectedWorkspace === "activity"
+                ? "mb-2 cursor-pointer rounded-md border border-[#1769b2] bg-[#bfe2ff] px-8 py-2 text-xs font-semibold text-[#0b4d91] shadow-sm transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2478bf]"
+                : "mb-2 cursor-pointer rounded-md border border-[#4485bb] bg-[#e7f3ff] px-8 py-2 text-xs font-medium text-[#173575] transition-all duration-150 hover:border-[#1769b2] hover:bg-[#d5eaff] hover:text-[#0b4d91] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2478bf]"
+            }
           >
             Activity Log
           </button>
@@ -213,35 +231,98 @@ export function EngagementLanding({ details, engagementId, initialWorkspace, isL
         <div className="border border-[#4485bb] bg-[#e7f3ff] p-4 sm:p-5">
           {selectedWorkspace === "planning" ? (
             <PlanningActivities details={details} engagementId={engagementId} />
+          ) : selectedWorkspace === "activity" ? (
+            <ActivityTabStub details={details} isLoading={isLoading} />
           ) : selectedStage ? (
-            <div className="flex min-h-[420px] flex-col items-center justify-center gap-4 rounded-md border border-[#9fc2db] bg-[#f4faff] text-center text-[#1d2e68]" aria-live="polite">
-              <SelectedIcon size={64} className="text-[#27388c]" />
-              <div>
-                <h2 className="text-lg font-semibold">{selectedStage.label}</h2>
-                <p className="mt-1 text-sm">Not Started Yet</p>
+            <div
+              className="overflow-hidden rounded-md border border-[#9fc2db] bg-white font-sans text-[#1d2e68]"
+              aria-live="polite"
+            >
+              {/* Table-style Header Bar matching PlanningActivities */}
+              <div className="flex items-center justify-between gap-2.5 border-b border-[#9fc2db] bg-[#dcebf7] px-4 py-2.5 text-[14px] font-bold leading-5 text-[#1d2e68]">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-5 w-5 items-center justify-center rounded border border-[#2b4c7e] bg-white text-[#2b4c7e]">
+                    <SelectedIcon size={13} />
+                  </div>
+                  <h2>{selectedStage.label}</h2>
+                </div>
+                <span className="rounded bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                  In Dev
+                </span>
               </div>
+
+              <div className="flex min-h-[420px] flex-col items-center justify-center bg-white px-6 py-12 text-center">
+                <div className="flex h-[76px] w-[76px] items-center justify-center rounded-2xl border-2 border-[#5464a0] bg-[#f4f7fc] text-[#5464a0] shadow-2xs">
+                  <SelectedIcon size={40} />
+                </div>
+
+                <h3 className="mt-6 text-[18px] font-bold text-[#1d2e68]">
+                  {selectedStage.label}
+                </h3>
+
+                <p className="mt-2.5 max-w-[440px] text-[13px] leading-relaxed text-slate-600">
+                  This workspace is currently under active development and will be enabled in an upcoming release.
+                </p>
+
+                <p className="mt-3.5 max-w-[420px] text-[12px] leading-relaxed text-slate-500">
+                  Continue working with Preliminary Survey inside the Planning workspace to encode and manage active engagement records.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedWorkspace("planning");
+                  }}
+                  className="mt-5 inline-flex cursor-pointer items-center gap-2 rounded-md border border-[#7bb3e2] bg-[#e7f3ff] px-5 py-2 text-[13px] font-semibold text-[#1d2e68] shadow-2xs transition-all duration-150 hover:border-[#2478bf] hover:bg-[#d5eaff] hover:text-[#0b4d91]"
+                >
+                  Go to Planning Workspace <ArrowRight size={15} />
+                </button>
+              </div>
+
+              {/*
+                ORIGINAL WORKSPACE STAGE VIEW (COMMENTED OUT - DO NOT DELETE):
+                <div className="flex min-h-[420px] flex-col items-center justify-center gap-4 rounded-md border border-[#9fc2db] bg-[#f4faff] text-center text-[#1d2e68]" aria-live="polite">
+                  <SelectedIcon size={64} className="text-[#27388c]" />
+                  <div>
+                    <h2 className="text-lg font-semibold">{selectedStage.label}</h2>
+                    <p className="mt-1 text-sm">Not Started Yet</p>
+                  </div>
+                </div>
+              */}
             </div>
           ) : (
             <div className="flex min-h-[420px] items-center justify-center rounded-md border border-[#a9c8dc] bg-[#f8fcff] px-5 py-10">
               <div className="grid w-full max-w-[1040px] gap-6 sm:grid-cols-2 xl:grid-cols-4 xl:gap-10">
-                {workspaces.map(({ id, label, icon: Icon }) => (
-                  <div key={id} className="flex min-h-[276px] flex-col items-center justify-between rounded-xl border border-[#4485bb] bg-[#dfecfb] px-4 py-7 text-center text-[#26388c] shadow-sm">
-                    <div className="flex flex-1 flex-col items-center justify-center gap-4">
-                      <Icon size={96} />
-                      <h3 className="max-w-[160px] text-lg font-semibold leading-tight">{label}</h3>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedWorkspace(id);
-                        navigateTo(`${basePath}/${id}`);
-                      }}
-                      className="mt-5 inline-flex w-full max-w-[170px] cursor-pointer items-center justify-center gap-4 rounded-md border border-[#a4acb8] bg-white px-3 py-2 text-xs text-slate-700 shadow-sm transition-all duration-150 hover:border-[#2478bf] hover:bg-[#d8ecff] hover:text-[#0b4d91] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2478bf]"
+                {workspaces.map(({ id, label, icon: Icon }) => {
+                  const isInDev = id !== "planning";
+                  return (
+                    <div
+                      key={id}
+                      className="relative flex min-h-[276px] flex-col items-center justify-between rounded-xl border border-[#4485bb] bg-[#dfecfb] px-4 py-7 text-center text-[#26388c] shadow-sm"
                     >
-                      Open Activity <ArrowRight size={16} />
-                    </button>
-                  </div>
-                ))}
+                      {isInDev && (
+                        <span className="absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20">
+                          In Dev
+                        </span>
+                      )}
+                      <div className="flex flex-1 flex-col items-center justify-center gap-4">
+                        <Icon size={96} />
+                        <h3 className="max-w-[160px] text-lg font-semibold leading-tight">{label}</h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedWorkspace(id);
+                          // Keep tab navigation inline without jumping routes
+                          // navigateTo(`${basePath}/${id}`);
+                        }}
+                        className="mt-5 inline-flex w-full max-w-[170px] cursor-pointer items-center justify-center gap-3 rounded-md border border-[#a4acb8] bg-white px-3 py-2 text-xs text-slate-700 shadow-sm transition-all duration-150 hover:border-[#2478bf] hover:bg-[#d8ecff] hover:text-[#0b4d91] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2478bf]"
+                      >
+                        {isInDev ? "Under Development" : "Open Activity"} <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
