@@ -37,17 +37,11 @@ class AemsSurveyReviewService
         }
     }
 
-    public function canReview(User $user, AuditEngagement $engagement, array $review): bool
+    public function canReview(User $user, AuditEngagement $engagement): bool
     {
         if ($this->isHead($user)) {
             return true;
         }
-        $contributors = collect($review['fieldSaves'] ?? [])->pluck('user.id');
-        if (empty($review['lastSavedBy']) || (int) $review['lastSavedBy']['id'] === (int) $user->id
-            || $contributors->contains(fn ($id): bool => (int) $id === (int) $user->id)) {
-            return false;
-        }
-
         return $user->hasPermission('aems.planning-package.review')
             && $engagement->teamMembers()->where('user_id', $user->id)
                 ->where('assignment_role_code', 'TEAM_LEADER')->where('is_active', true)->whereNull('ended_at')->exists();
@@ -56,15 +50,27 @@ class AemsSurveyReviewService
     public function capabilities(User $user, AuditEngagement $engagement, ?AemsPlanningPackage $package, array $review): array
     {
         $writable = $this->canWrite($user, $engagement, $package);
-        $pending = ($review['status'] ?? 'DRAFT') === 'PENDING_REVIEW';
+        $status = $review['status'] ?? 'DRAFT';
+        $pending = $status === 'PENDING_REVIEW';
+        $head = $this->isHead($user);
+        $reviewer = $this->canReview($user, $engagement);
+        $leader = $reviewer && ! $head;
+        $saved = ! empty($review['lastSavedBy']);
+        $ownInput = (int) ($review['lastSavedBy']['id'] ?? 0) === (int) $user->id
+            || collect($review['fieldSaves'] ?? [])->pluck('user.id')->contains(fn ($id): bool => (int) $id === (int) $user->id);
+        $ownDraft = $leader && $saved && $ownInput && in_array($status, ['DRAFT', 'RETURNED_FOR_REVISION'], true);
+        $headReview = $pending && ($review['reviewTarget'] ?? null) === 'CIAS_HEAD';
+        $canReview = $reviewer && (! $headReview || $head);
+        $selfApproved = $leader && $status === 'APPROVED'
+            && (int) ($review['approvedBy']['id'] ?? 0) === (int) $user->id;
 
         return [
-            'canEdit' => $writable && (! $pending || $this->isHead($user)),
-            'canSubmit' => $writable && ! $this->isHead($user) && ! $pending
-                && ($review['status'] ?? 'DRAFT') !== 'APPROVED' && ! empty($review['lastSavedBy']),
-            'canApprove' => $writable && $pending && $this->canReview($user, $engagement, $review),
-            'canReturn' => $writable && $pending && $this->canReview($user, $engagement, $review),
-            'autoApprove' => $this->isHead($user),
+            'canEdit' => $writable && (! $pending || $head),
+            'canSubmit' => $writable && ! $head && ! $pending && $saved && ($status !== 'APPROVED' || $selfApproved),
+            'canApprove' => $writable && $canReview && ($pending || $ownDraft),
+            'canReturn' => $writable && $pending && $canReview,
+            'submitToHead' => $leader,
+            'autoApprove' => $head,
         ];
     }
 
@@ -111,6 +117,7 @@ class AemsSurveyReviewService
                 'submittedBy' => null, 'submittedAt' => null, 'approvedBy' => $approved ? $stamp['user'] : null,
                 'approvedAt' => $approved ? $stamp['at'] : null, 'returnComment' => null,
                 'returnedBy' => null, 'returnedAt' => null];
+            $review['reviewTarget'] = null;
         }
 
         return [...$review, 'lastSavedBy' => $stamp['user'], 'lastSavedAt' => $stamp['at'], 'status' => $review['status'] ?? 'DRAFT'];
@@ -121,7 +128,7 @@ class AemsSurveyReviewService
         $capabilities = $this->capabilities($user, $engagement, $package, $review);
         $key = ['SUBMIT' => 'canSubmit', 'APPROVE' => 'canApprove', 'RETURN' => 'canReturn'][$action] ?? null;
         if (! $key || ! $capabilities[$key]) {
-            throw new HttpException(403, 'Your assignment or this section’s review state does not allow this action. Team leaders cannot approve their own input.');
+            throw new HttpException(403, 'Your assignment or this section’s review state does not allow this action.');
         }
         if ($action === 'RETURN' && mb_strlen(trim((string) $comment)) < 5) {
             throw ValidationException::withMessages(['comment' => ['Enter a return instruction of at least 5 characters.']]);
@@ -130,7 +137,9 @@ class AemsSurveyReviewService
         $now = now()->toISOString();
 
         return match ($action) {
-            'SUBMIT' => [...$review, 'status' => 'PENDING_REVIEW', 'submittedBy' => $person, 'submittedAt' => $now],
+            'SUBMIT' => [...$review, 'status' => 'PENDING_REVIEW', 'submittedBy' => $person, 'submittedAt' => $now,
+                'reviewTarget' => $capabilities['submitToHead'] ? 'CIAS_HEAD' : 'TEAM_LEADER_OR_CIAS_HEAD',
+                'approvedBy' => null, 'approvedAt' => null],
             'APPROVE' => [...$review, 'status' => 'APPROVED', 'approvedBy' => $person, 'approvedAt' => $now],
             'RETURN' => [...$review, 'status' => 'RETURNED_FOR_REVISION', 'returnedBy' => $person, 'returnedAt' => $now, 'returnComment' => trim($comment)],
         };

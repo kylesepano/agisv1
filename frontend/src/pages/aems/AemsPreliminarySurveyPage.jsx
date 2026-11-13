@@ -5,6 +5,7 @@ import { useAuth } from "../../auth/auth-context";
 import { hasPermission } from "../../config/navigation";
 import { aemsEngagementApi, aemsPlanningPackageApi, documentApi } from "../../services/api";
 import SearchableSelect from "../../components/ui/SearchableSelect";
+import Modal from "../../components/ui/Modal";
 import { icsPanels, meetingFields, ppspPanels, principles, profileFields, surveySections, tables } from "../../components/aems/surveyDefinition";
 import "./aems-survey.css";
 
@@ -50,8 +51,41 @@ export default function AemsPreliminarySurveyPage() {
   const [notice, setNotice] = useState("");
   const [dirty, setDirty] = useState(false);
   const [editor, setEditor] = useState(null);
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [returnComment, setReturnComment] = useState("");
+  const [returnError, setReturnError] = useState("");
+  const returnInputRef = useRef(null);
+  const moreActionsRef = useRef(null);
   const editorRef = useRef(null);
   const editorKey = editor?.key;
+
+  useEffect(() => {
+    if (!returnOpen) return;
+
+    const dialog = returnInputRef.current?.closest('[role="dialog"]');
+    const returnTrigger = moreActionsRef.current;
+    returnInputRef.current?.focus();
+
+    function keepFocusInDialog(event) {
+      if (event.key !== "Tab" || !dialog) return;
+      const controls = dialog.querySelectorAll('button:not(:disabled), textarea:not(:disabled)');
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+
+    document.addEventListener("keydown", keepFocusInDialog);
+    return () => {
+      document.removeEventListener("keydown", keepFocusInDialog);
+      returnTrigger?.focus();
+    };
+  }, [returnOpen]);
 
   useEffect(() => {
     if (editorKey) editorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -92,15 +126,13 @@ export default function AemsPreliminarySurveyPage() {
     setSaving(true); setError(""); setNotice("");
     try {
       const result = await aemsPlanningPackageApi.saveSurvey(engagementId, { section, data, lockVersion: workspace.lockVersion ?? null });
-      setWorkspace(result); setSurvey(result.survey ?? {}); setDirty(false); setNotice(result.sectionReviews?.[section]?.status === "APPROVED" ? "Saved and automatically approved by the CIAS head." : "Draft saved successfully."); return result;
+      setWorkspace(result); setSurvey(result.survey ?? {}); setDirty(false);
+      setNotice(result.sectionCapabilities?.[section]?.autoApprove ? "Saved and automatically approved by the CIAS head." : result.sectionReviews?.[section]?.status === "APPROVED" ? "Saved successfully." : "Draft saved successfully.");
+      return result;
     } catch (reason) { setError(reason.message); return null; } finally { setSaving(false); }
   }
-  async function reviewAction(action) {
-    let comment;
-    if (action === "RETURN") {
-      comment = window.prompt("Instructions for revising this section:");
-      if (comment == null) return;
-    }
+  async function reviewAction(action, comment) {
+    if (saving) return;
     let lockVersion = workspace.lockVersion;
     if (dirty) {
       if (action !== "SUBMIT") { setError("Save or discard your edits before reviewing the saved draft."); return; }
@@ -112,8 +144,27 @@ export default function AemsPreliminarySurveyPage() {
     try {
       const result = await aemsPlanningPackageApi.reviewSurvey(engagementId, { section, action, comment, lockVersion });
       setWorkspace(result); setSurvey(result.survey ?? {}); setDirty(false);
-      setNotice({ SUBMIT: "Section submitted for review.", APPROVE: "Section approved successfully.", RETURN: "Section returned for revision." }[action]);
-    } catch (reason) { setError(reason.message); } finally { setSaving(false); }
+      setNotice({ SUBMIT: result.sectionReviews?.[section]?.reviewTarget === "CIAS_HEAD" ? "Section submitted to the CIAS head for review." : "Section submitted for review.", APPROVE: "Section approved successfully.", RETURN: "Section returned for revision." }[action]);
+      if (action === "RETURN") {
+        setReturnOpen(false);
+        setReturnComment("");
+        setReturnError("");
+      }
+    } catch (reason) {
+      if (action === "RETURN") setReturnError(reason.message);
+      else setError(reason.message);
+    } finally { setSaving(false); }
+  }
+  function submitReturn(event) {
+    event.preventDefault();
+    const comment = returnComment.trim();
+    if (comment.length < 5) {
+      setReturnError("Enter revision instructions of at least 5 characters.");
+      returnInputRef.current?.focus();
+      return;
+    }
+    setReturnError("");
+    reviewAction("RETURN", comment);
   }
   async function upload(key, file) {
     const attachment = await aemsPlanningPackageApi.uploadSurveyFile(engagementId, file);
@@ -175,6 +226,7 @@ export default function AemsPreliminarySurveyPage() {
           {dirty && <span>Unsaved changes</span>}
           {review.lastSavedBy && <span>Last saved by {review.lastSavedBy.name} · {savedAt(review.lastSavedAt)}</span>}
           {review.submittedBy && <span>Submitted by {review.submittedBy.name} · {savedAt(review.submittedAt)}</span>}
+          {review.status === "PENDING_REVIEW" && review.reviewTarget === "CIAS_HEAD" && <span>Awaiting CIAS head review</span>}
           {review.approvedBy && <span>Approved by {review.approvedBy.name} · {savedAt(review.approvedAt)}</span>}
           {capabilities.autoApprove && <span>Your saves are automatically approved as CIAS head.</span>}
           {review.returnComment && <p>Returned by {review.returnedBy?.name}: {review.returnComment}</p>}
@@ -197,12 +249,53 @@ export default function AemsPreliminarySurveyPage() {
         {editor && <section ref={editorRef} className="survey-editor" aria-label={`${editor.view ? "View" : "Add/Edit"} ${tables[editor.key].title}`}><header className="survey-window-bar"><span>{editor.view ? "View" : "Add/Edit"} {tables[editor.key].title}</span><button type="button" aria-label="Close item editor" onClick={() => setEditor(null)}><X size={20} /></button></header>{error && <p role="alert" className="survey-error">{error}</p>}<div className={`survey-editor-fields ${editor.key === "risks" ? "survey-form-grid" : ""}`}>{fields(tables[editor.key].fields, { ...editor.row, ...(editor.key === "risks" ? { riskRating: editor.row.likelihood && editor.row.impact ? Number(editor.row.likelihood) * Number(editor.row.impact) : "" } : {}) }, (key, value) => setEditor((previous) => ({ ...previous, row: { ...previous.row, [key]: value } })), editor.view || !editable || saving)}</div><footer><button type="button" className="survey-button" onClick={() => setEditor(null)}><ArrowLeft size={18} /> Back to {definition[1]} workspace</button>{!editor.view && <button type="button" className="survey-button" disabled={saving} onClick={updateRow}>{saving ? "Saving…" : "Update to Table"}</button>}</footer></section>}
         <footer className="survey-footer"><Link className="survey-button" to={planningUrl} onClick={(event) => { if (dirty && !window.confirm("Leave without saving your draft?")) event.preventDefault(); }}><ArrowLeft size={18} /> Back to Planning Workspace</Link><button type="button" className="survey-button" disabled={!editable || saving || !!editor} onClick={() => save()}>{saving ? "Saving…" : "Save Draft"}</button>
           <details className="survey-more"><summary aria-label="Go to" className="survey-button">Go to <ChevronDown size={16} /></summary><div>{surveySections.map(([key, number, title]) => <button type="button" key={key} onClick={(event) => { changeView(key); event.currentTarget.closest("details").open = false; }}>{number} {title}</button>)}<Link to={`/audit-engagement-management/planning-package?engagementId=${engagementId}&section=readiness`}>Planning Review & Approval</Link></div></details>
-          <details className="survey-more"><summary aria-label="More Actions" className="survey-button survey-primary">More Actions <ChevronDown size={16} /></summary><div>
-            {[["SUBMIT", "canSubmit", "Submit for Review"], ["APPROVE", "canApprove", "Approve Draft"], ["RETURN", "canReturn", "Return for Revision"]].filter(([, permission]) => capabilities[permission]).map(([action, , title]) => <button type="button" key={action} disabled={saving || !!editor || (dirty && action !== "SUBMIT")} onClick={(event) => { event.currentTarget.closest("details").open = false; reviewAction(action); }}>{title}</button>)}
-            {!capabilities.canSubmit && !capabilities.canApprove && !capabilities.canReturn && <p className="survey-menu-hint">{capabilities.autoApprove ? "Your saved sections are automatically approved." : review.status === "APPROVED" ? "This section is approved. Saving changed inputs starts a new draft." : review.status === "PENDING_REVIEW" ? "Awaiting approval from the team leader or CIAS head. Team leaders’ own input requires the CIAS head." : "Save your draft to submit it for review."}</p>}
+          <details className="survey-more"><summary ref={moreActionsRef} aria-label="More Actions" className="survey-button survey-primary">More Actions <ChevronDown size={16} /></summary><div>
+            {[["SUBMIT", "canSubmit", capabilities.submitToHead ? "Submit to CIAS Head for Review" : "Submit for Review"], ["APPROVE", "canApprove", "Approve Draft"], ["RETURN", "canReturn", "Return for Revision"]].filter(([, permission]) => capabilities[permission]).map(([action, , title]) => <button type="button" key={action} disabled={saving || !!editor || (dirty && action !== "SUBMIT")} onClick={(event) => {
+              event.currentTarget.closest("details").open = false;
+              if (action === "RETURN") {
+                setReturnComment("");
+                setReturnError("");
+                setReturnOpen(true);
+              } else {
+                reviewAction(action);
+              }
+            }}>{title}</button>)}
+            {!capabilities.canSubmit && !capabilities.canApprove && !capabilities.canReturn && <p className="survey-menu-hint">{capabilities.autoApprove ? "Your saved sections are automatically approved." : review.status === "APPROVED" ? "This section is approved. Saving changed inputs starts a new draft." : review.status === "PENDING_REVIEW" ? (review.reviewTarget === "CIAS_HEAD" ? "Awaiting approval from the CIAS head." : "Awaiting approval from the team leader or CIAS head.") : "Save your draft to submit it for review."}</p>}
           </div></details>
         </footer>
       </div>
     </section>
+    <Modal
+      open={returnOpen}
+      title="Return for Revision"
+      description={`${definition[1]} ${definition[2]}`}
+      onClose={() => !saving && setReturnOpen(false)}
+      footer={
+        <>
+          <button className="survey-button" type="button" disabled={saving} onClick={() => setReturnOpen(false)}>Cancel</button>
+          <button className="survey-button survey-primary" type="submit" form="survey-return-revision" disabled={saving}>
+            {saving ? "Returning…" : "Return for Revision"}
+          </button>
+        </>
+      }
+    >
+      <form id="survey-return-revision" noValidate onSubmit={submitReturn} aria-busy={saving}>
+        <label className="block text-sm font-semibold text-slate-700" htmlFor="survey-revision-instructions">Revision instructions</label>
+        <p className="mt-1 text-sm text-slate-500" id="survey-revision-hint">Describe the changes required before this section can be approved.</p>
+        <textarea
+          ref={returnInputRef}
+          id="survey-revision-instructions"
+          className="mt-3 min-h-36 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-800 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+          value={returnComment}
+          maxLength={4000}
+          required
+          disabled={saving}
+          aria-invalid={!!returnError}
+          aria-describedby={`survey-revision-hint${returnError ? " survey-revision-error" : ""}`}
+          onChange={(event) => { setReturnComment(event.target.value); setReturnError(""); }}
+        />
+        {returnError && <p className="mt-2 text-sm text-red-600" id="survey-revision-error" role="alert">{returnError}</p>}
+      </form>
+    </Modal>
   </main>;
 }

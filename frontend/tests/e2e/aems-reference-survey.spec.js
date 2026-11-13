@@ -58,24 +58,43 @@ test("section actions submit and approve drafts while Go to handles navigation",
   let survey = {};
   let sectionReviews = {};
   let lockVersion = null;
+  const returnRequests = [];
+  const browserDialogs = [];
+  page.on("dialog", async (dialog) => {
+    browserDialogs.push(dialog.type());
+    await dialog.dismiss();
+  });
   await page.route("**/api/me", (route) => route.fulfill({ json: { success: true, data: { user: { ...people[actor], initials: "AU", permissions: ["aems.engagement.view", "aems.planning-package.view", "aems.planning-package.create", "aems.planning-package.update"] } } } }));
   await page.route(/\/api\/aems\/engagements\/9001\/preliminary-survey(?:\/review)?$/, async (route) => {
     const input = route.request().method() === "GET" ? null : route.request().postDataJSON();
     if (input) {
+      if (input.action === "RETURN") {
+        returnRequests.push(input);
+        if (returnRequests.length === 1) {
+          await route.fulfill({ status: 422, json: { success: false, message: "Please review the revision instructions.", errors: { comment: ["Please review the revision instructions."] } } });
+          return;
+        }
+      }
       const stamp = { user: people[actor], at: "2026-11-09T03:00:00Z" };
       const old = sectionReviews[input.section] ?? {};
       if (input.action) {
-        sectionReviews[input.section] = { ...old, status: input.action === "SUBMIT" ? "PENDING_REVIEW" : "APPROVED", ...(input.action === "SUBMIT" ? { submittedBy: people[actor], submittedAt: stamp.at } : { approvedBy: people[actor], approvedAt: stamp.at }) };
+        sectionReviews[input.section] = { ...old, status: input.action === "SUBMIT" ? "PENDING_REVIEW" : input.action === "RETURN" ? "RETURNED_FOR_REVISION" : "APPROVED", ...(input.action === "SUBMIT" ? { submittedBy: people[actor], submittedAt: stamp.at, reviewTarget: actor === "leader" ? "CIAS_HEAD" : "TEAM_LEADER_OR_CIAS_HEAD", approvedBy: null, approvedAt: null } : input.action === "RETURN" ? { returnedBy: people[actor], returnedAt: stamp.at, returnComment: input.comment } : { approvedBy: people[actor], approvedAt: stamp.at }) };
       } else {
+        const unchanged = JSON.stringify(survey[input.section]) === JSON.stringify(input.data);
         survey[input.section] = input.data;
-        sectionReviews[input.section] = { status: actor === "head" ? "APPROVED" : "DRAFT", lastSavedBy: people[actor], lastSavedAt: stamp.at, fieldSaves: Object.fromEntries(Object.keys(input.data).map((key) => [key, stamp])), ...(actor === "head" ? { approvedBy: people[actor], approvedAt: stamp.at } : {}) };
+        sectionReviews[input.section] = unchanged && actor !== "head"
+          ? { ...old, lastSavedBy: people[actor], lastSavedAt: stamp.at }
+          : { status: actor === "head" ? "APPROVED" : "DRAFT", lastSavedBy: people[actor], lastSavedAt: stamp.at, fieldSaves: Object.fromEntries(Object.keys(input.data).map((key) => [key, stamp])), ...(actor === "head" ? { approvedBy: people[actor], approvedAt: stamp.at } : {}) };
       }
       lockVersion = (lockVersion ?? 0) + 1;
     }
     const sectionCapabilities = Object.fromEntries(surveySections.map(([key]) => {
       const review = sectionReviews[key] ?? {};
       const pending = review.status === "PENDING_REVIEW";
-      return [key, { canEdit: !pending || actor === "head", canSubmit: actor !== "head" && !!review.lastSavedBy && !pending && review.status !== "APPROVED", canApprove: pending && (actor === "head" || (actor === "leader" && review.lastSavedBy?.id !== people.leader.id)), autoApprove: actor === "head" }];
+      const canReview = pending && (actor === "head" || (actor === "leader" && review.reviewTarget !== "CIAS_HEAD"));
+      const ownDraft = actor === "leader" && review.lastSavedBy?.id === people.leader.id && ["DRAFT", "RETURNED_FOR_REVISION"].includes(review.status);
+      const selfApproved = actor === "leader" && review.approvedBy?.id === people.leader.id;
+      return [key, { canEdit: !pending || actor === "head", canSubmit: actor !== "head" && !!review.lastSavedBy && !pending && (review.status !== "APPROVED" || selfApproved), canApprove: canReview || ownDraft, canReturn: canReview, submitToHead: actor === "leader", autoApprove: actor === "head" }];
     }));
     await route.fulfill({ json: { success: true, data: { survey, sectionReviews, sectionCapabilities, lockVersion, canEdit: true, packageStatus: "DRAFT", attachments: [], participantOptions: [] } } });
   });
@@ -91,6 +110,43 @@ test("section actions submit and approve drafts while Go to handles navigation",
   actor = "leader";
   await page.reload();
   await page.getByLabel("More Actions", { exact: true }).click();
+  await page.getByRole("button", { name: "Return for Revision", exact: true }).click();
+  const returnModal = page.getByRole("dialog", { name: "Return for Revision", exact: true });
+  await expect(returnModal).toBeVisible();
+  await expect(returnModal.getByLabel("Revision instructions", { exact: true })).toBeFocused();
+  await returnModal.getByLabel("Revision instructions", { exact: true }).fill("Cancel this request");
+  await returnModal.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(returnModal).not.toBeVisible();
+  await expect(page.getByLabel("More Actions", { exact: true })).toBeFocused();
+  expect(returnRequests).toHaveLength(0);
+  await page.getByLabel("More Actions", { exact: true }).click();
+  await page.getByRole("button", { name: "Return for Revision", exact: true }).click();
+  await expect(returnModal.getByLabel("Revision instructions", { exact: true })).toHaveValue("");
+  await returnModal.getByRole("button", { name: "Return for Revision", exact: true }).click();
+  await expect(returnModal.getByRole("alert")).toContainText("at least 5 characters");
+  expect(returnRequests).toHaveLength(0);
+  const instructions = "Please confirm the proposed venue and participants.";
+  await returnModal.getByLabel("Revision instructions", { exact: true }).fill(instructions);
+  await page.screenshot({ path: `test-results/reference-return-revision-${info.project.name}.png`, fullPage: true });
+  await returnModal.getByRole("button", { name: "Return for Revision", exact: true }).click();
+  await expect(returnModal.getByRole("alert")).toHaveText("Please review the revision instructions.");
+  await expect(returnModal.getByLabel("Revision instructions", { exact: true })).toHaveValue(instructions);
+  await returnModal.getByRole("button", { name: "Return for Revision", exact: true }).click();
+  await expect(returnModal).not.toBeVisible();
+  await expect(page.getByLabel("Section review status")).toContainText(instructions);
+  expect(returnRequests).toHaveLength(2);
+  expect(returnRequests[1]).toMatchObject({ section: "meeting", action: "RETURN", comment: instructions });
+  expect(browserDialogs).toEqual([]);
+  actor = "member";
+  await page.reload();
+  await page.getByLabel("Venue / Online Link").fill("Confirmed venue");
+  await page.getByRole("button", { name: "Save Draft", exact: true }).click();
+  await page.getByLabel("More Actions", { exact: true }).click();
+  await page.getByRole("button", { name: "Submit for Review", exact: true }).click();
+  await expect(page.getByLabel("Section review status")).toContainText("Pending Review");
+  actor = "leader";
+  await page.reload();
+  await page.getByLabel("More Actions", { exact: true }).click();
   await page.getByRole("button", { name: "Approve Draft", exact: true }).click();
   await expect(page.getByLabel("Section review status")).toContainText("Approved by Team Leader");
   await page.getByLabel("Go to", { exact: true }).click();
@@ -98,8 +154,15 @@ test("section actions submit and approve drafts while Go to handles navigation",
   await page.getByLabel("Mandate", { exact: true }).fill("Leader mandate");
   await page.getByRole("button", { name: "Save Draft", exact: true }).click();
   await page.getByLabel("More Actions", { exact: true }).click();
-  await page.getByRole("button", { name: "Submit for Review", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Submit to CIAS Head for Review", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Approve Draft", exact: true }).click();
+  await expect(page.getByLabel("Section review status")).toContainText("Approved by Team Leader");
+  await page.getByRole("button", { name: "Save Draft", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Saved successfully.");
+  await page.getByLabel("More Actions", { exact: true }).click();
+  await page.getByRole("button", { name: "Submit to CIAS Head for Review", exact: true }).click();
   await expect(page.getByLabel("Section review status")).toContainText("Pending Review");
+  await expect(page.getByLabel("Section review status")).toContainText("Awaiting CIAS head review");
   await page.getByLabel("More Actions", { exact: true }).click();
   await expect(page.getByRole("button", { name: "Approve Draft", exact: true })).toHaveCount(0);
   actor = "head";
